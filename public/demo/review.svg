@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="760" viewBox="0 0 1200 760">
+  <rect width="1200" height="760" rx="40" fill="#e84b31"/>
+  <rect x="44" y="44" width="1112" height="672" rx="30" fill="#fffdf7"/>
+  <text x="92" y="132" font-family="PingFang SC, sans-serif" font-size="34" font-weight="700" fill="#171714">第二次：用复述暴露理解的空洞</text>
+  <rect x="92" y="184" width="1016" height="2" fill="#171714"/>
+  <text x="92" y="246" font-family="ui-monospace, monospace" font-size="22" fill="#e84b31">CHECK 01</text>
+  <text x="92" y="292" font-family="PingFang SC, sans-serif" font-size="28" fill="#171714">✓ 你说对了：模型会比较上下文里的相关性</text>
+  <text x="92" y="368" font-family="ui-monospace, monospace" font-size="22" fill="#e84b31">CHECK 02</text>
+  <text x="92" y="414" font-family="PingFang SC, sans-serif" font-size="28" fill="#171714">! 你漏掉了：这种比较会在多个“视角”中并行发生</text>
+  <text x="92" y="490" font-family="ui-monospace, monospace" font-size="22" fill="#e84b31">TRY AGAIN</text>
+  <rect x="92" y="524" width="1016" height="116" rx="18" fill="#171714"/>
+  <text x="128" y="574" font-family="PingFang SC, sans-serif" font-size="26" fill="#fffdf7">请不用“注意力”和“并行”两个词，</text>
+  <text x="128" y="614" font-family="PingFang SC, sans-serif" font-size="26" fill="#fffdf7">重新解释一次为什么模型能同时看到多条线索。</text>
+</svg>

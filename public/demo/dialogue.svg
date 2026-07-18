@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720">
+  <rect width="1200" height="720" rx="40" fill="#171714"/>
+  <rect x="48" y="48" width="1104" height="624" rx="28" fill="#f4f0e7"/>
+  <circle cx="112" cy="122" r="26" fill="#e84b31"/>
+  <text x="158" y="133" font-family="PingFang SC, sans-serif" font-size="30" font-weight="700" fill="#171714">第一次：把术语换成画面</text>
+  <rect x="96" y="190" width="720" height="122" rx="22" fill="#ffffff"/>
+  <text x="130" y="238" font-family="PingFang SC, sans-serif" font-size="25" fill="#383832">请把 Transformer 想成一张正在整理的书桌。</text>
+  <text x="130" y="278" font-family="PingFang SC, sans-serif" font-size="25" fill="#383832">注意力机制决定：此刻应该先看哪一张纸。</text>
+  <rect x="360" y="354" width="728" height="134" rx="22" fill="#f0b84b"/>
+  <text x="402" y="406" font-family="PingFang SC, sans-serif" font-size="25" fill="#171714">所以它不是从左到右死记，而是在整张桌面上</text>
+  <text x="402" y="448" font-family="PingFang SC, sans-serif" font-size="25" fill="#171714">寻找“现在最相关”的线索，对吗？</text>
+  <path d="M136 568h420" stroke="#171714" stroke-width="8" stroke-linecap="round"/>
+  <circle cx="604" cy="568" r="16" fill="#e84b31"/>
+  <text x="650" y="580" font-family="ui-monospace, monospace" font-size="22" fill="#6c6a63">01 / LISTEN</text>
+</svg>
