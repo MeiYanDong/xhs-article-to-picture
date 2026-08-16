@@ -4,14 +4,14 @@
 
 本次增量复验：2026-08-16
 
-结论：本地可运行版本通过统一质量门禁、Chromium 有序列表分页与浅色主题回归、原有自动化和生产构建。远端 Actions 与分支保护必须取得 GitHub 读回证据后才标记为生效。
+结论：本地可运行版本通过统一质量门禁、Chromium 有序列表分页与浅色主题回归、原有自动化和生产构建。PR #1 的 GitHub Actions 已成功运行，`main` 分支保护已启用并从 API 读回；合并后的 `main` push 回执仍须在合并后补齐。
 
 ## 2026-08-16 有序列表增量复验
 
 | 检查 | 当前结果 | 业务断言 |
 | --- | --- | --- |
-| `npm run format:check` | 通过：31 个文件 | `src`、`tests`、`scripts` 与根配置全部进入统一 Biome 格式门禁 |
-| `npm run lint` | 通过：31 个文件 | Biome recommended 全量启用，warning 也会阻断 |
+| `npm run format:check` | 通过：32 个文件 | `src`、`tests`、`scripts` 与根配置全部进入统一 Biome 格式门禁 |
+| `npm run lint` | 通过：32 个文件 | Biome recommended 全量启用，warning 也会阻断 |
 | `npm run typecheck` | 通过 | 应用、Vite/Vitest 配置、Playwright 配置与浏览器测试均参与 TypeScript 检查 |
 | `npm test` | 通过：6 个测试文件，22 个场景 | 新增断言证明 ordered list 与显式 `start=9` 在 Markdown 解析阶段未丢失 |
 | `npm run test:e2e` | 通过：Chromium 2/2 | 验证 8 个原生 `::marker` 处于裁切安全区，并读取默认浅色主题最终计算色与 WCAG 对比度 |
@@ -22,6 +22,26 @@
 实际文章 `article-fold-preview.md` 在图片全部稳定后读回为 10 页、文章图片 7/7、预览与测量画布图片节点 14/14、控制台错误 0。序号修复版前 3 页为 `01-fixed.png`、`02-fixed.png`、`03-fixed.png`；浅色版为 `01-light.png`、`02-light.png`、`03-light.png`，旧截图均未覆盖。第 2 页的 `1–4` 序号完整显示。
 
 浅色主题最终计算色为纸张 `rgb(255, 253, 249)`、正文 `rgb(74, 72, 67)`、雾粉 `#e8a095`；正文/纸张对比度约 `9.2:1`。状态栏为 `rgb(238, 232, 225)` / `rgb(109, 102, 95)`，对比度约 `4.65:1`。
+
+## GitHub CI 与合并保护读回
+
+首次 PR 回执（文档补充前的 HEAD）：
+
+- PR：[Harden article folding and adopt a light editorial theme](https://github.com/MeiYanDong/xhs-article-to-picture/pull/1)
+- Workflow：[Quality run 31941290673](https://github.com/MeiYanDong/xhs-article-to-picture/actions/runs/31941290673)
+- 事件 / HEAD：`pull_request` / `673c8917b63e1f03bb5ba6a2bd6cd8cb1653b052`
+- 结果：`check` 成功；2026-08-16 18:17:48 至 18:18:30（Asia/Shanghai），42 秒
+- 远端步骤：checkout、Node.js 22、`npm ci`、Playwright Chromium 与系统依赖安装、`npm run check` 全部成功
+
+`main` 分支保护 API 读回：
+
+- `required_status_checks.strict = true`，必需 context 为 `check`
+- 必须通过 pull request；批准数为 0，适配当前单人仓库，不把合并流程锁死
+- `enforce_admins = true`，管理员不能绕过门禁
+- `required_conversation_resolution = true`
+- `allow_force_pushes = false`，`allow_deletions = false`
+
+上述是 GitHub 当前状态读回，不以仓库中的 YAML 或文档文字替代。由于本节本身会产生新提交，最终合并只接受新 HEAD 对应的严格 CI 成功结果。
 
 ## 自动化检查
 
