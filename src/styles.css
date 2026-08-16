@@ -20,9 +20,11 @@
   --green: #71917c;
   --chrome: #eee8e1;
   --chrome-ink: #6d665f;
-  --article-paper: #fffdf9;
+  --article-paper: #ffffff;
   --article-ink: #4a4843;
   --article-heading: #34312e;
+  --article-accent: #e8a095;
+  --article-accent-pale: #f8e3df;
   --mono: "SFMono-Regular", "Cascadia Code", "Roboto Mono", monospace;
   --serif: "Noto Serif SC", "Songti SC", STSong, serif;
 }
@@ -1105,13 +1107,7 @@ button:disabled {
 
 .page-reading-progress-fill {
   height: 100%;
-  background: linear-gradient(
-    90deg,
-    rgba(232, 160, 149, 0.86) 0%,
-    rgba(232, 160, 149, 0.72) 76%,
-    rgba(243, 215, 166, 0.88) 100%
-  );
-  box-shadow: 12px 0 22px rgba(243, 215, 166, 0.16);
+  background: var(--article-accent);
 }
 
 .page-content-clip {
@@ -1390,14 +1386,14 @@ button:disabled {
   left: 0;
   width: 150px;
   height: 9px;
-  background: linear-gradient(90deg, var(--red) 0 72%, var(--yellow) 72%);
+  background: var(--article-accent);
   content: "";
 }
 
 .article-heading.depth-2 {
   margin-top: 44px;
   padding-left: 28px;
-  border-left: 9px solid var(--red-deep);
+  border-left: 9px solid var(--article-accent);
   font-size: 52px;
   line-height: 1.28;
 }
@@ -1431,7 +1427,7 @@ button:disabled {
 /* biome-ignore lint/style/noDescendingSpecificity: this selector targets the article canvas, not the start-screen hero. */
 .article-flow em {
   text-decoration: underline;
-  text-decoration-color: var(--yellow);
+  text-decoration-color: var(--article-accent);
   text-decoration-thickness: 0.24em;
   text-underline-offset: -0.06em;
   text-decoration-skip-ink: none;
@@ -1476,7 +1472,7 @@ button:disabled {
 }
 
 .article-flow li::marker {
-  color: var(--red-deep);
+  color: var(--article-accent);
   font-family: var(--mono);
   font-weight: 700;
 }
@@ -1507,8 +1503,8 @@ button:disabled {
   margin: 8px 0 38px;
   padding: 30px 34px 22px;
   border: 0;
-  border-left: 8px solid #d9a69d;
-  background: #f8f2ec;
+  border-left: 8px solid var(--article-accent);
+  background: var(--article-accent-pale);
   break-inside: avoid;
 }
 
@@ -1518,7 +1514,7 @@ button:disabled {
 
 .article-flow .article-callout {
   border-left: 0;
-  background: #fae8c7;
+  background: var(--article-accent-pale);
 }
 
 .callout-title {
@@ -1533,7 +1529,7 @@ button:disabled {
 
 .callout-title span {
   padding: 4px 8px;
-  background: #efb9b0;
+  background: var(--article-accent);
   color: var(--article-heading);
   font-family: var(--mono);
   font-size: 15px;
@@ -1551,9 +1547,9 @@ button:disabled {
   display: block;
   width: 100%;
   max-height: 720px;
-  border: 1px solid #ded9ce;
+  border: 0;
   object-fit: contain;
-  background: #f1eee7;
+  background: transparent;
 }
 
 .article-image figcaption {

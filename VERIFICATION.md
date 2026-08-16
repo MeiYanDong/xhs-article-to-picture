@@ -13,15 +13,17 @@
 | `npm run format:check` | 通过：32 个文件 | `src`、`tests`、`scripts` 与根配置全部进入统一 Biome 格式门禁 |
 | `npm run lint` | 通过：32 个文件 | Biome recommended 全量启用，warning 也会阻断 |
 | `npm run typecheck` | 通过 | 应用、Vite/Vitest 配置、Playwright 配置与浏览器测试均参与 TypeScript 检查 |
-| `npm test` | 通过：6 个测试文件，22 个场景 | 新增断言证明 ordered list 与显式 `start=9` 在 Markdown 解析阶段未丢失 |
+| `npm test` | 通过：6 个测试文件，23 个场景 | ordered list 与显式 `start=9` 在 Markdown 解析阶段未丢失；PNG 导出背景常量严格为 `#ffffff` |
 | `npm run test:e2e` | 通过：Chromium 2/2 | 验证 8 个原生 `::marker` 处于裁切安全区，并读取默认浅色主题最终计算色与 WCAG 对比度 |
 | `npm run build` | 通过：10 个 JS chunk | React、CodeMirror、Markdown 与导出引擎按语义拆包；每个 chunk 均不超过 500 KiB |
 | `npm audit` | 通过：0 个已知漏洞 | 定向更新间接依赖 `postcss` 与 `nanoid` 后读回 |
 | `npm run check` | 通过 | 按顺序汇总以上格式、lint、类型、单元、构建与浏览器门禁 |
 
-实际文章 `article-fold-preview.md` 在图片全部稳定后读回为 10 页、文章图片 7/7、预览与测量画布图片节点 14/14、控制台错误 0。序号修复版前 3 页为 `01-fixed.png`、`02-fixed.png`、`03-fixed.png`；浅色版为 `01-light.png`、`02-light.png`、`03-light.png`，旧截图均未覆盖。第 2 页的 `1–4` 序号完整显示。
+实际文章 `article-fold-preview.md` 在新版白底信息图接入后读回为 10 页、文章图片 7/7、预览与测量画布图片节点 14/14、缺图 0、控制台与页面异常均为 0。10 张最终画布保存在 `06-xhs/fold-preview/white-final/01.png` 至 `10.png`，全部为 1080×1440；`verification.json` 保存逐页尺寸、列偏移、图片加载与计算色读回。第 2 页的 `1–4` 序号仍完整显示。
 
-浅色主题最终计算色为纸张 `rgb(255, 253, 249)`、正文 `rgb(74, 72, 67)`、雾粉 `#e8a095`；正文/纸张对比度约 `9.2:1`。状态栏为 `rgb(238, 232, 225)` / `rgb(109, 102, 95)`，对比度约 `4.65:1`。
+含封面的 `03-article/article.md` 另行读回为 10 页、文章图片 8/8、预览与测量图片节点 16/16、缺图 0、控制台与页面异常均为 0。新版 `00-cover-white.png` 为 1672×941，最外两圈像素 100% 为 `#ffffff`；第一页截图为 `06-xhs/fold-preview/white-final/cover-adapted-page-1.png`，封面边框 `0px`、衬底透明，页面画布仍为 1080×1440 纯白。
+
+浅色主题最终计算色为纸张 `rgb(255, 255, 255)`、正文 `rgb(74, 72, 67)`、雾粉 `#e8a095`，正文/纸张对比度约 `9.13:1`；进度条与一级标题标记均为单色雾粉且无渐变。图片边框为 `0px`、衬底透明。真实导出函数返回 1080×1440 PNG，三个无内容边缘采样点均为 `[255, 255, 255, 255]`。状态栏仍为 `rgb(238, 232, 225)` / `rgb(109, 102, 95)`，对比度约 `4.65:1`。
 
 ## GitHub CI 与合并保护读回
 
@@ -50,7 +52,7 @@ PR 与 `main` 的远端回执：
 
 | 检查 | 结果 | 覆盖范围 |
 | --- | --- | --- |
-| `npm test` | 通过：6 个测试文件，22 个场景 | Markdown / Callout、frontmatter 导出主题、原生有序列表、Obsidian 图片、整页图语义、路径解析、安全写回、冲突拦截、PNG 命名与目录写入、图床代理安全边界、作者头部归一化与旧配置迁移 |
+| `npm test` | 通过：6 个测试文件，23 个场景 | Markdown / Callout、frontmatter 导出主题、原生有序列表、Obsidian 图片、整页图语义、路径解析、安全写回、冲突拦截、PNG 命名、纯白导出背景与目录写入、图床代理安全边界、作者头部归一化与旧配置迁移 |
 | `npm run build` | 通过 | TypeScript、Vite 生产构建和 500 KiB 单 chunk 硬门禁 |
 | `zsh -n 启动折页.command` | 通过 | 一键启动脚本语法 |
 | 启动脚本权限 | 通过 | 文件可执行 |
@@ -87,7 +89,7 @@ PR 与 `main` 的远端回执：
 24. Codex 双篇真实文章复测：上篇 3 张原创总结图均为整页，总计 11 页；下篇 3 张原创图均为整页，总计 13 页；浏览器控制台错误为 0。
 25. 导出主题优先读取 frontmatter `export_title`；真实上下篇在预览栏分别显示 `Codex用法上篇` 与 `Codex入门下篇`，对应归档目录和 PNG 名不撞名，浏览器控制台错误为 0。
 26. 有序列表浏览器回归把单个数字 `1–4` 与两位数 `9–12` 强制放到第二页；测试按真实 `::marker` 宽度计算左边界，8 个序号均未越过 `overflow: hidden` 裁切线，且 `<ol start>` 与 1080×1440 画布语义未改变。
-27. 默认浅色主题浏览器回归读取文章纸张、正文、雾粉 token 与状态栏最终计算色；正文/纸张和状态栏对比度均不低于 `4.5:1`。
+27. 默认浅色主题浏览器回归读取文章纸张、正文、雾粉 token、单色进度条、一级标题标记与状态栏最终计算色；纸张严格为 `rgb(255, 255, 255)`，两个强调元素无渐变，正文/纸张和状态栏对比度均不低于 `4.5:1`。
 
 Vault 流程使用内存实现的 File System Access 句柄；归档授权与复用流程使用 Chromium 的可结构化克隆目录句柄进行自动化。两者覆盖相同接口和状态机，但不冒充用户真实 Vault 或真实 `Documents/publish` 验收。
 

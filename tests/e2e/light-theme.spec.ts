@@ -37,21 +37,35 @@ test("default article and workspace use the verified light palette", async ({ pa
     const artboard = document.querySelector<HTMLElement>(".page-artboard");
     const article = document.querySelector<HTMLElement>(".article-flow");
     const statusbar = document.querySelector<HTMLElement>(".workspace-statusbar");
-    if (!artboard || !article || !statusbar) throw new Error("浅色主题验收节点缺失");
+    const progress = document.querySelector<HTMLElement>(".page-reading-progress-fill");
+    const heading = document.querySelector<HTMLElement>(".article-heading.depth-1");
+    if (!artboard || !article || !statusbar || !progress || !heading) {
+      throw new Error("浅色主题验收节点缺失");
+    }
+
+    const headingRule = getComputedStyle(heading, "::after");
 
     return {
       paper: getComputedStyle(artboard).backgroundColor,
       articleInk: getComputedStyle(article).color,
-      accent: root.getPropertyValue("--red").trim(),
+      accent: root.getPropertyValue("--article-accent").trim(),
+      progressBackground: getComputedStyle(progress).backgroundColor,
+      progressBackgroundImage: getComputedStyle(progress).backgroundImage,
+      headingAccent: headingRule.backgroundColor,
+      headingAccentImage: headingRule.backgroundImage,
       statusbarBackground: getComputedStyle(statusbar).backgroundColor,
       statusbarInk: getComputedStyle(statusbar).color,
     };
   });
 
   expect(colors).toEqual({
-    paper: "rgb(255, 253, 249)",
+    paper: "rgb(255, 255, 255)",
     articleInk: "rgb(74, 72, 67)",
     accent: "#e8a095",
+    progressBackground: "rgb(232, 160, 149)",
+    progressBackgroundImage: "none",
+    headingAccent: "rgb(232, 160, 149)",
+    headingAccentImage: "none",
     statusbarBackground: "rgb(238, 232, 225)",
     statusbarInk: "rgb(109, 102, 95)",
   });

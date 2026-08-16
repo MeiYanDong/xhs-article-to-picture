@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  EXPORT_BACKGROUND_COLOR,
   exportPageFilename,
   formatArchiveDate,
   sanitizeTopicName,
@@ -59,6 +60,10 @@ class MemoryDirectoryHandle {
 }
 
 describe("PNG export naming and folder writes", () => {
+  it("uses an exact white background for exported PNGs", () => {
+    expect(EXPORT_BACKGROUND_COLOR).toBe("#ffffff");
+  });
+
   it("creates a safe ten-character topic and xhs-compatible page names", () => {
     expect(sanitizeTopicName(' AI 教程: "第一篇" / 草稿 ')).toBe("AI教程第一篇草稿");
     expect(sanitizeTopicName("这是一个超过十个字的主题名称")).toBe("这是一个超过十个字的");
