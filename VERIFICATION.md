@@ -1,19 +1,38 @@
 # 折页 V0.2 验收记录
 
-验收日期：2026-07-18
+初次验收：2026-07-18
 
-结论：本地可运行版本通过自动化、Chromium 编辑链路和 PNG 导出链路验收，可以进入用户真实 Obsidian Vault 与真实保存目录验收。
+本次增量复验：2026-08-16
+
+结论：本地可运行版本通过统一质量门禁、Chromium 有序列表分页与浅色主题回归、原有自动化和生产构建。远端 Actions 与分支保护必须取得 GitHub 读回证据后才标记为生效。
+
+## 2026-08-16 有序列表增量复验
+
+| 检查 | 当前结果 | 业务断言 |
+| --- | --- | --- |
+| `npm run format:check` | 通过：31 个文件 | `src`、`tests`、`scripts` 与根配置全部进入统一 Biome 格式门禁 |
+| `npm run lint` | 通过：31 个文件 | Biome recommended 全量启用，warning 也会阻断 |
+| `npm run typecheck` | 通过 | 应用、Vite/Vitest 配置、Playwright 配置与浏览器测试均参与 TypeScript 检查 |
+| `npm test` | 通过：6 个测试文件，22 个场景 | 新增断言证明 ordered list 与显式 `start=9` 在 Markdown 解析阶段未丢失 |
+| `npm run test:e2e` | 通过：Chromium 2/2 | 验证 8 个原生 `::marker` 处于裁切安全区，并读取默认浅色主题最终计算色与 WCAG 对比度 |
+| `npm run build` | 通过：10 个 JS chunk | React、CodeMirror、Markdown 与导出引擎按语义拆包；每个 chunk 均不超过 500 KiB |
+| `npm audit` | 通过：0 个已知漏洞 | 定向更新间接依赖 `postcss` 与 `nanoid` 后读回 |
+| `npm run check` | 通过 | 按顺序汇总以上格式、lint、类型、单元、构建与浏览器门禁 |
+
+实际文章 `article-fold-preview.md` 在图片全部稳定后读回为 10 页、文章图片 7/7、预览与测量画布图片节点 14/14、控制台错误 0。序号修复版前 3 页为 `01-fixed.png`、`02-fixed.png`、`03-fixed.png`；浅色版为 `01-light.png`、`02-light.png`、`03-light.png`，旧截图均未覆盖。第 2 页的 `1–4` 序号完整显示。
+
+浅色主题最终计算色为纸张 `rgb(255, 253, 249)`、正文 `rgb(74, 72, 67)`、雾粉 `#e8a095`；正文/纸张对比度约 `9.2:1`。状态栏为 `rgb(238, 232, 225)` / `rgb(109, 102, 95)`，对比度约 `4.65:1`。
 
 ## 自动化检查
 
 | 检查 | 结果 | 覆盖范围 |
 | --- | --- | --- |
-| `npm test` | 通过：6 个测试文件，16 个场景 | Markdown / Callout、Obsidian 图片、路径解析、安全写回、冲突拦截、PNG 命名与目录写入、图床代理安全边界、作者头部归一化与旧配置迁移 |
-| `npm run build` | 通过 | TypeScript 与 Vite 生产构建 |
+| `npm test` | 通过：6 个测试文件，22 个场景 | Markdown / Callout、frontmatter 导出主题、原生有序列表、Obsidian 图片、整页图语义、路径解析、安全写回、冲突拦截、PNG 命名与目录写入、图床代理安全边界、作者头部归一化与旧配置迁移 |
+| `npm run build` | 通过 | TypeScript、Vite 生产构建和 500 KiB 单 chunk 硬门禁 |
 | `zsh -n 启动折页.command` | 通过 | 一键启动脚本语法 |
 | 启动脚本权限 | 通过 | 文件可执行 |
 
-生产构建目前有一个非阻断提示：主 JavaScript 包约 1,007 kB，后续可通过延迟加载编辑器与导出引擎做拆包；它不影响 V0.2 的本地使用与数据安全。
+生产运行时额外在真实 Chromium 中读回：应用根节点正常渲染，控制台错误 0。曾尝试按固定大小自动拆分 CodeMirror，构建虽通过但生产预览白屏；该方案已撤回，改为按 React、Lezer、CodeMirror state/view/language、Markdown 与导出引擎的依赖层级拆分，并由 Chromium E2E 防止“构建绿、运行白屏”回归。
 
 ## Chromium 主链路
 
@@ -41,6 +60,11 @@
 20. 作者头部可实时修改字标、作者名、日期和栏目名；图片头像会在本机裁切为 384×384 WebP，也可一键切回文字字标。
 21. 自定义作者配置刷新后仍存在，本地存储中不再残留旧版 `meta` 和 `initials` 字段；配置不改写 Markdown。
 22. 自定义图片头像、作者名“芽东 AI 实验室”、日期“2026年7月18日”和栏目“非技术 AI 教程”已进入首页导出成品；4 张图全部写入归档，首图为 1080×1440 RGBA，浏览器控制台错误为 0。
+23. 文首单图后接分页标记时，图片会直接占据 1080×1440 画布、坐标为 `(0, 0)`；该页作者头、图注和页码数量均为 0，仅保留顶部进度条。
+24. Codex 双篇真实文章复测：上篇 3 张原创总结图均为整页，总计 11 页；下篇 3 张原创图均为整页，总计 13 页；浏览器控制台错误为 0。
+25. 导出主题优先读取 frontmatter `export_title`；真实上下篇在预览栏分别显示 `Codex用法上篇` 与 `Codex入门下篇`，对应归档目录和 PNG 名不撞名，浏览器控制台错误为 0。
+26. 有序列表浏览器回归把单个数字 `1–4` 与两位数 `9–12` 强制放到第二页；测试按真实 `::marker` 宽度计算左边界，8 个序号均未越过 `overflow: hidden` 裁切线，且 `<ol start>` 与 1080×1440 画布语义未改变。
+27. 默认浅色主题浏览器回归读取文章纸张、正文、雾粉 token 与状态栏最终计算色；正文/纸张和状态栏对比度均不低于 `4.5:1`。
 
 Vault 流程使用内存实现的 File System Access 句柄；归档授权与复用流程使用 Chromium 的可结构化克隆目录句柄进行自动化。两者覆盖相同接口和状态机，但不冒充用户真实 Vault 或真实 `Documents/publish` 验收。
 
@@ -64,6 +88,10 @@ Vault 流程使用内存实现的 File System Access 句柄；归档授权与复
 - [作者头部自定义面板](output/playwright/author-customizer-avatar.png)
 - [自定义作者头部的导出成功回执](output/playwright/author-custom-export-success.png)
 - [自定义头像与作者信息导出成品](output/playwright/exported-custom-author/两遍AI对话学习法_01.png)
+- [Codex 上篇首图整页渲染](output/playwright/upper-first-page-full-bleed.png)
+- [Codex 下篇导出主题预览](output/playwright/export-topic-part-2-toolbar.png)
+- [浅色开始页](output/playwright/visual/start-light.png)
+- [浅色真实文章工作台](output/playwright/visual/workbench-light.png)
 
 ## 用户真实 Vault 验收
 

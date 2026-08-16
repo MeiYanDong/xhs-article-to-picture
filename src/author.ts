@@ -5,9 +5,7 @@ const MAX_AVATAR_BYTES = 12 * 1024 * 1024;
 const AVATAR_OUTPUT_SIZE = 384;
 
 function asRecord(value: unknown): Record<string, unknown> {
-  return typeof value === "object" && value !== null
-    ? (value as Record<string, unknown>)
-    : {};
+  return typeof value === "object" && value !== null ? (value as Record<string, unknown>) : {};
 }
 
 function stringValue(value: unknown, fallback = ""): string {
@@ -16,20 +14,22 @@ function stringValue(value: unknown, fallback = ""): string {
 
 export function normalizeWordmark(value: string, fallback = "折"): string {
   const cleaned = value.trim();
-  return Array.from(cleaned || fallback).slice(0, 2).join("");
+  return Array.from(cleaned || fallback)
+    .slice(0, 2)
+    .join("");
 }
 
 export function formatAuthorMeta(author: AuthorProfile): string {
   return [author.date.trim(), author.column.trim()].filter(Boolean).join(" · ");
 }
 
-export function normalizeAuthorProfile(
-  value: unknown,
-  fallback: AuthorProfile,
-): AuthorProfile {
+export function normalizeAuthorProfile(value: unknown, fallback: AuthorProfile): AuthorProfile {
   const source = asRecord(value);
   const legacyMeta = stringValue(source.meta);
-  const legacyParts = legacyMeta.split("·").map((part) => part.trim()).filter(Boolean);
+  const legacyParts = legacyMeta
+    .split("·")
+    .map((part) => part.trim())
+    .filter(Boolean);
   const name = stringValue(source.name, fallback.name).trim() || fallback.name;
   const avatar = stringValue(source.avatarDataUrl);
 
@@ -41,9 +41,7 @@ export function normalizeAuthorProfile(
       stringValue(source.wordmark, stringValue(source.initials, Array.from(name)[0])),
       fallback.wordmark,
     ),
-    avatarDataUrl: /^data:image\/(?:jpeg|png|webp);base64,/i.test(avatar)
-      ? avatar
-      : undefined,
+    avatarDataUrl: /^data:image\/(?:jpeg|png|webp);base64,/i.test(avatar) ? avatar : undefined,
   };
 }
 

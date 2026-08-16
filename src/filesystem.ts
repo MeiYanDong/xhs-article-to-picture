@@ -7,16 +7,7 @@ import type {
 } from "./domain";
 import { basename, normalizePath } from "./assets";
 
-const IMAGE_EXTENSIONS = new Set([
-  "avif",
-  "bmp",
-  "gif",
-  "jpeg",
-  "jpg",
-  "png",
-  "svg",
-  "webp",
-]);
+const IMAGE_EXTENSIONS = new Set(["avif", "bmp", "gif", "jpeg", "jpg", "png", "svg", "webp"]);
 
 const SKIPPED_DIRECTORIES = new Set([".git", ".trash", "node_modules"]);
 
@@ -31,9 +22,7 @@ export function supportsFileSystemAccess(): boolean {
 export async function hashText(text: string): Promise<string> {
   const bytes = new TextEncoder().encode(text);
   const digest = await crypto.subtle.digest("SHA-256", bytes);
-  return [...new Uint8Array(digest)]
-    .map((byte) => byte.toString(16).padStart(2, "0"))
-    .join("");
+  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
 function classifyFile(name: string): IndexedFileEntry["kind"] {
@@ -84,9 +73,7 @@ async function readAttachmentFolderPath(
   }
 }
 
-export async function indexVault(
-  root: FileSystemDirectoryHandle,
-): Promise<VaultIndex> {
+export async function indexVault(root: FileSystemDirectoryHandle): Promise<VaultIndex> {
   const files: IndexedFileEntry[] = [];
   await walkDirectory(root, "", files);
 

@@ -61,11 +61,14 @@ export async function prepareAssetsForExport(
   onProgress?: (completed: number, total: number) => void,
 ): Promise<Map<string, ResolvedAsset>> {
   const entries = [...assets.entries()];
-  const unready = entries.filter(([, asset]) =>
-    !asset.url || !["resolved", "remote"].includes(asset.status),
+  const unready = entries.filter(
+    ([, asset]) => !asset.url || !["resolved", "remote"].includes(asset.status),
   );
   if (unready.length) {
-    const names = unready.slice(0, 3).map(([raw]) => raw).join("、");
+    const names = unready
+      .slice(0, 3)
+      .map(([raw]) => raw)
+      .join("、");
     throw new Error(`还有 ${unready.length} 张图片未就绪：${names}`);
   }
 
@@ -79,9 +82,11 @@ export async function prepareAssetsForExport(
       cursor += 1;
       const [raw, asset] = entries[entryIndex];
       try {
-        const dataUrl = asset.url?.startsWith("data:")
-          ? asset.url
-          : await blobToDataUrl(await fetchExportableImage(asset.url!));
+        const assetUrl = asset.url;
+        if (!assetUrl) throw new Error("图片地址缺失");
+        const dataUrl = assetUrl.startsWith("data:")
+          ? assetUrl
+          : await blobToDataUrl(await fetchExportableImage(assetUrl));
         prepared.set(raw, { ...asset, status: "resolved", url: dataUrl });
       } catch (error) {
         const detail = error instanceof Error ? error.message : "图片读取失败";
@@ -116,14 +121,22 @@ async function waitForImages(node: HTMLElement): Promise<void> {
             () => reject(new Error(`图片加载超时：${image.alt || "未命名图片"}`)),
             15_000,
           );
-          image.addEventListener("load", () => {
-            window.clearTimeout(timer);
-            resolve();
-          }, { once: true });
-          image.addEventListener("error", () => {
-            window.clearTimeout(timer);
-            reject(new Error(`图片无法绘制：${image.alt || "未命名图片"}`));
-          }, { once: true });
+          image.addEventListener(
+            "load",
+            () => {
+              window.clearTimeout(timer);
+              resolve();
+            },
+            { once: true },
+          );
+          image.addEventListener(
+            "error",
+            () => {
+              window.clearTimeout(timer);
+              reject(new Error(`图片无法绘制：${image.alt || "未命名图片"}`));
+            },
+            { once: true },
+          );
         }),
     ),
   );
@@ -145,7 +158,7 @@ export async function renderPageToPng(node: HTMLElement): Promise<Blob> {
     canvasWidth: EXPORT_WIDTH,
     canvasHeight: EXPORT_HEIGHT,
     pixelRatio: 1,
-    backgroundColor: "#fffdf8",
+    backgroundColor: "#fffdf9",
     cacheBust: false,
     includeQueryParams: true,
     skipFonts: true,

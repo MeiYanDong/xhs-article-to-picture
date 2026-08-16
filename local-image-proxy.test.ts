@@ -11,10 +11,10 @@ describe("local image proxy safety helpers", () => {
   });
 
   it("accepts only recognized raster image signatures", () => {
-    expect(sniffRasterImageType(new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0, 0, 0, 0])))
-      .toBe("image/png");
-    expect(sniffRasterImageType(new Uint8Array([0xff, 0xd8, 0xff, 0xe0])))
-      .toBe("image/jpeg");
+    expect(sniffRasterImageType(new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0, 0, 0, 0]))).toBe(
+      "image/png",
+    );
+    expect(sniffRasterImageType(new Uint8Array([0xff, 0xd8, 0xff, 0xe0]))).toBe("image/jpeg");
     expect(sniffRasterImageType(new TextEncoder().encode("<svg></svg>"))).toBeNull();
   });
 });

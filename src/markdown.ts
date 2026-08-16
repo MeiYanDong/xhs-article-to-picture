@@ -1,34 +1,14 @@
-import type {
-  Blockquote,
-  Image,
-  Paragraph,
-  PhrasingContent,
-  Root,
-  RootContent,
-  Text,
-} from "mdast";
-import { toString } from "mdast-util-to-string";
+import type { Blockquote, Image, Paragraph, PhrasingContent, Root, RootContent, Text } from "mdast";
+import { toString as mdastToString } from "mdast-util-to-string";
 import remarkFrontmatter from "remark-frontmatter";
 import remarkGfm from "remark-gfm";
 import remarkParse from "remark-parse";
 import { unified } from "unified";
 import type { ContentBlock, ImageSpec } from "./domain";
 
-const IMAGE_EXTENSIONS = new Set([
-  "avif",
-  "bmp",
-  "gif",
-  "jpeg",
-  "jpg",
-  "png",
-  "svg",
-  "webp",
-]);
+const IMAGE_EXTENSIONS = new Set(["avif", "bmp", "gif", "jpeg", "jpg", "png", "svg", "webp"]);
 
-const parser = unified()
-  .use(remarkParse)
-  .use(remarkGfm)
-  .use(remarkFrontmatter, ["yaml"]);
+const parser = unified().use(remarkParse).use(remarkGfm).use(remarkFrontmatter, ["yaml"]);
 
 interface ObsidianToken {
   type: "text" | "embed";
@@ -39,14 +19,15 @@ function splitObsidianEmbeds(value: string): ObsidianToken[] {
   const tokens: ObsidianToken[] = [];
   const pattern = /!\[\[([^\]]+)\]\]/g;
   let cursor = 0;
-  let match: RegExpExecArray | null;
+  let match = pattern.exec(value);
 
-  while ((match = pattern.exec(value))) {
+  while (match) {
     if (match.index > cursor) {
       tokens.push({ type: "text", value: value.slice(cursor, match.index) });
     }
     tokens.push({ type: "embed", value: match[1] });
     cursor = match.index + match[0].length;
+    match = pattern.exec(value);
   }
 
   if (cursor < value.length) {
@@ -193,8 +174,8 @@ function paragraphToBlocks(paragraph: Paragraph, baseId: string): ContentBlock[]
 
 function detectCallout(node: Blockquote): { kind: string; title: string } | undefined {
   const first = node.children[0];
-  if (!first || first.type !== "paragraph") return undefined;
-  const plain = toString(first).trim();
+  if (first?.type !== "paragraph") return undefined;
+  const plain = mdastToString(first).trim();
   const match = plain.match(/^\[!([A-Za-z-]+)\][+-]?[^\S\n]*([^\n]*)/);
   if (!match) return undefined;
   return {
@@ -277,7 +258,18 @@ export function parseMarkdown(markdown: string): ContentBlock[] {
     }
   });
 
-  return blocks;
+  return blocks.map((block, index) => {
+    if (block.type !== "image") return block;
+    const previous = blocks[index - 1];
+    const next = blocks[index + 1];
+    const startsOnPage = index === 0 || previous?.type === "pageBreak";
+    const endsOnPage = index === blocks.length - 1 || next?.type === "pageBreak";
+    if (!startsOnPage || !endsOnPage) return block;
+    return {
+      ...block,
+      image: { ...block.image, layout: "full-page" },
+    };
+  });
 }
 
 export function collectImages(blocks: ContentBlock[]): Array<{
@@ -287,6 +279,50 @@ export function collectImages(blocks: ContentBlock[]): Array<{
   return blocks.flatMap((block) =>
     block.type === "image" ? [{ blockId: block.id, image: block.image }] : [],
   );
+}
+
+export function readFrontmatterFields(markdown: string): Record<string, string> {
+  const match = markdown.match(/^\uFEFF?---[ \t]*\r?\n([\s\S]*?)\r?\n---[ \t]*(?:\r?\n|$)/);
+  if (!match) return {};
+
+  const fields: Record<string, string> = {};
+  for (const line of match[1].split(/\r?\n/)) {
+    const field = line.match(/^([A-Za-z][A-Za-z0-9_-]*)\s*:\s*(.*?)\s*$/);
+    if (!field) continue;
+    const key = field[1].toLowerCase();
+    const raw = field[2].trim();
+    if (!raw) continue;
+    if (raw.startsWith('"') && raw.endsWith('"')) {
+      try {
+        fields[key] = JSON.parse(raw) as string;
+        continue;
+      } catch {
+        fields[key] = raw.slice(1, -1);
+        continue;
+      }
+    }
+    fields[key] =
+      raw.startsWith("'") && raw.endsWith("'") ? raw.slice(1, -1).replace(/''/g, "'") : raw;
+  }
+  return fields;
+}
+
+export function resolveExportTopicSource(
+  markdown: string,
+  blocks: ContentBlock[],
+  fallback: string,
+): string {
+  const fields = readFrontmatterFields(markdown);
+  const explicit =
+    fields.export_title ?? fields["export-title"] ?? fields.exporttitle ?? fields.title;
+  if (explicit?.trim()) return explicit.trim();
+
+  const heading = blocks.find((block) => block.type === "heading" && block.depth === 1);
+  if (heading?.type === "heading") {
+    const title = inlinePlainText(heading.inline.nodes).trim();
+    if (title) return title;
+  }
+  return fallback.trim() || "未命名主题";
 }
 
 export function inlinePlainText(nodes: PhrasingContent[]): string {

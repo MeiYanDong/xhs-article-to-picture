@@ -64,6 +64,8 @@ describe("PNG export naming and folder writes", () => {
     expect(sanitizeTopicName("这是一个超过十个字的主题名称")).toBe("这是一个超过十个字的");
     expect(exportPageFilename("两遍 AI 对话", 0, 12)).toBe("两遍AI对话_01.png");
     expect(exportPageFilename("两遍 AI 对话", 11, 12)).toBe("两遍AI对话_12.png");
+    expect(exportPageFilename("Codex用法上篇", 0, 11)).toBe("Codex用法上篇_01.png");
+    expect(exportPageFilename("Codex入门下篇", 12, 13)).toBe("Codex入门下篇_13.png");
     expect(formatArchiveDate(new Date(2026, 6, 17, 9, 8, 7))).toBe("20260717");
   });
 
@@ -76,7 +78,9 @@ describe("PNG export naming and folder writes", () => {
       [new Blob(["one"]), new Blob(["two"])],
       date,
     );
-    const folder = root.directories.get(first.folderName)!;
+    const folder = root.directories.get(first.folderName);
+    expect(folder).toBeDefined();
+    if (!folder) throw new Error("Expected export folder to exist");
     folder.files.set("copywriting.md", new MemoryFileHandle("copywriting.md"));
     const second = await writePngFiles(
       root as unknown as FileSystemDirectoryHandle,
@@ -92,5 +96,27 @@ describe("PNG export naming and folder writes", () => {
     expect(second.replacedFiles).toBe(2);
     expect(folder.files.has("教程_02.png")).toBe(false);
     expect(folder.files.has("copywriting.md")).toBe(true);
+  });
+
+  it("keeps an upper and lower article in distinct meaningful archive folders", async () => {
+    const root = new MemoryDirectoryHandle("exports");
+    const date = new Date(2026, 6, 18, 9, 8, 7);
+    const upper = await writePngFiles(
+      root as unknown as FileSystemDirectoryHandle,
+      "Codex用法上篇",
+      [new Blob(["upper"])],
+      date,
+    );
+    const lower = await writePngFiles(
+      root as unknown as FileSystemDirectoryHandle,
+      "Codex入门下篇",
+      [new Blob(["lower"])],
+      date,
+    );
+
+    expect(upper.folderName).toBe("20260718_Codex用法上篇");
+    expect(upper.filenames).toEqual(["Codex用法上篇_01.png"]);
+    expect(lower.folderName).toBe("20260718_Codex入门下篇");
+    expect(lower.filenames).toEqual(["Codex入门下篇_01.png"]);
   });
 });

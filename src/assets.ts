@@ -7,16 +7,7 @@ import type {
 } from "./domain";
 import { collectImages } from "./markdown";
 
-const IMAGE_EXTENSIONS = new Set([
-  "avif",
-  "bmp",
-  "gif",
-  "jpeg",
-  "jpg",
-  "png",
-  "svg",
-  "webp",
-]);
+const IMAGE_EXTENSIONS = new Set(["avif", "bmp", "gif", "jpeg", "jpg", "png", "svg", "webp"]);
 
 export function normalizePath(value: string): string {
   const decoded = (() => {
@@ -101,7 +92,9 @@ async function rasterizeLocalSvg(file: File): Promise<string> {
     if (documentNode.querySelector("parsererror")) throw new Error("SVG 格式无效");
     documentNode
       .querySelectorAll("script, foreignObject, iframe, object, embed")
-      .forEach((node) => node.remove());
+      .forEach((node) => {
+        node.remove();
+      });
     documentNode.querySelectorAll("*").forEach((node) => {
       for (const attribute of [...node.attributes]) {
         const name = attribute.name.toLowerCase();
@@ -113,14 +106,14 @@ async function rasterizeLocalSvg(file: File): Promise<string> {
         ) {
           node.removeAttribute(attribute.name);
         }
-        if (name === "style" && /url\(\s*['\"]?(?:https?:|\/\/)/i.test(value)) {
+        if (name === "style" && /url\(\s*['"]?(?:https?:|\/\/)/i.test(value)) {
           node.removeAttribute(attribute.name);
         }
       }
     });
     documentNode.querySelectorAll("style").forEach((node) => {
       node.textContent = (node.textContent ?? "").replace(
-        /url\(\s*(['\"]?)(?:https?:|\/\/)[^)]+\)/gi,
+        /url\(\s*(['"]?)(?:https?:|\/\/)[^)]+\)/gi,
         "none",
       );
     });
@@ -159,9 +152,7 @@ async function rasterizeLocalSvg(file: File): Promise<string> {
         <text x="600" y="350" text-anchor="middle" fill="#24241f" font-family="sans-serif" font-size="42">SVG 无法安全预览</text>
         <text x="600" y="410" text-anchor="middle" fill="#77736b" font-family="sans-serif" font-size="24">请转换为 PNG 后重试</text>
       </svg>`;
-    return URL.createObjectURL(
-      new Blob([safeFallback], { type: "image/svg+xml;charset=utf-8" }),
-    );
+    return URL.createObjectURL(new Blob([safeFallback], { type: "image/svg+xml;charset=utf-8" }));
   }
 }
 
@@ -201,11 +192,7 @@ export async function resolveAsset(
     };
   }
 
-  for (const candidatePath of buildCandidatePaths(
-    raw,
-    markdownPath,
-    vault.attachmentFolderPath,
-  )) {
+  for (const candidatePath of buildCandidatePaths(raw, markdownPath, vault.attachmentFolderPath)) {
     const exact = lookupExact(vault, candidatePath);
     if (exact?.kind === "image") {
       return {
