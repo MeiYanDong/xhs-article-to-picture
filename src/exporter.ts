@@ -3,6 +3,7 @@ import type { ResolvedAsset } from "./domain";
 
 export const EXPORT_WIDTH = 1080;
 export const EXPORT_HEIGHT = 1440;
+export const EXPORT_BACKGROUND_COLOR = "#ffffff";
 export const PUBLISH_ROOT_PATH = "/Users/myandong/Documents/publish";
 const IMAGE_PROXY_PATH = "/__zheye/image";
 
@@ -158,7 +159,7 @@ export async function renderPageToPng(node: HTMLElement): Promise<Blob> {
     canvasWidth: EXPORT_WIDTH,
     canvasHeight: EXPORT_HEIGHT,
     pixelRatio: 1,
-    backgroundColor: "#fffdf9",
+    backgroundColor: EXPORT_BACKGROUND_COLOR,
     cacheBust: false,
     includeQueryParams: true,
     skipFonts: true,

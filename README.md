@@ -24,7 +24,7 @@ npm run dev
 - 原生有序列表支持跨页裁切，单个和两位数序号会保留在页面安全区内。
 - Vault 附件目录、相对路径、同名图和缺图诊断。
 - 1080×1440 真实字体排版，单页、缩略图和信息流预览。
-- 默认使用“浅杏纸页 + 雾粉标注 + 暖灰文字”配色；工作台、预览画布与导出 PNG 共用同一套浅色语义 token。
+- 默认使用“纯白纸页 + 雾粉标注 + 炭黑文字”配色；文章预览画布与导出 PNG 严格使用 `#ffffff`，白底信息图不再添加默认边框或灰色衬底。
 - 整页成品图：位于文档开头/结尾，或被 `<!-- xhs-page-break -->` 单独隔开的图片，会直接接管 1080×1440 画布；不再套作者头、正文边距、图注或页码。文首整页图视为封面，不会在第二页重复作者头。
 - 作者头部可自定义：上传图片头像或使用 1–2 字字标，并独立修改作者名、日期与栏目名。配置仅保存在当前浏览器，会进入预览与导出 PNG，不会改写 Markdown。
 - 一键批量导出全部页面；归档到 `/Users/myandong/Documents/publish/YYYYMMDD_主题名/`，图片依次命名为 `主题名_01.png`、`主题名_02.png`。
@@ -43,7 +43,13 @@ npx playwright install chromium
 npm run check
 ```
 
-`npm run check` 会依次执行全仓格式检查、recommended lint、TypeScript 类型检查、单元测试、生产构建和真实 Chromium 回归。当前自动化覆盖 Markdown 编译、图片寻址、安全写回、冲突拦截、导出命名和文件夹写入，并验证有序列表在第二页裁切边界内完整显示、默认浅色主题具备足够正文对比度。生产构建还会阻断任何超过 500 KiB 的 JavaScript chunk；完整通过项、浏览器流程和视觉证据见 [`VERIFICATION.md`](VERIFICATION.md)。
+如果本地开发服务已经占用 `4173`，可保留现有进程并让浏览器门禁使用隔离端口：
+
+```bash
+PLAYWRIGHT_PORT=4174 npm run check
+```
+
+`npm run check` 会依次执行全仓格式检查、recommended lint、TypeScript 类型检查、单元测试、生产构建和真实 Chromium 回归。当前自动化覆盖 Markdown 编译、图片寻址、安全写回、冲突拦截、导出命名和文件夹写入，并验证有序列表在第二页裁切边界内完整显示、文章画布与 PNG 导出使用纯白背景、默认正文对比度达标。生产构建还会阻断任何超过 500 KiB 的 JavaScript chunk；完整通过项、浏览器流程和视觉证据见 [`VERIFICATION.md`](VERIFICATION.md)。
 
 仓库内的 [`.github/workflows/quality.yml`](.github/workflows/quality.yml) 会在 pull request 与 `main` push 上运行同一门禁。远端 Actions 回执与 `main` 分支保护的当前状态以 [`VERIFICATION.md`](VERIFICATION.md) 的读回记录为准；本地配置文件本身不被当作远端已生效的证据。
 
