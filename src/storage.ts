@@ -15,10 +15,7 @@ export async function addSnapshot(
   const current = (await get<SnapshotRecord[]>(key)) ?? [];
   const hash = await hashText(text);
   if (current[0]?.hash === hash) return current;
-  const next = [
-    { timestamp: Date.now(), text, hash, reason },
-    ...current,
-  ].slice(0, 20);
+  const next = [{ timestamp: Date.now(), text, hash, reason }, ...current].slice(0, 20);
   await set(key, next);
   return next;
 }

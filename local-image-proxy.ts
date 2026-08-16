@@ -5,10 +5,7 @@ import { isIP } from "node:net";
 const PROXY_PATH = "/__zheye/image";
 const MAX_IMAGE_BYTES = 25 * 1024 * 1024;
 const MAX_REDIRECTS = 4;
-const ALLOWED_ORIGINS = new Set([
-  "http://127.0.0.1:4173",
-  "http://localhost:4173",
-]);
+const ALLOWED_ORIGINS = new Set(["http://127.0.0.1:4173", "http://localhost:4173"]);
 
 type Next = () => void;
 
@@ -95,12 +92,12 @@ export function sniffRasterImageType(bytes: Uint8Array): string | null {
     bytes[1] === 0x50 &&
     bytes[2] === 0x4e &&
     bytes[3] === 0x47
-  ) return "image/png";
+  )
+    return "image/png";
   if (bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) {
     return "image/jpeg";
   }
-  const ascii = (start: number, end: number) =>
-    String.fromCharCode(...bytes.slice(start, end));
+  const ascii = (start: number, end: number) => String.fromCharCode(...bytes.slice(start, end));
   if (bytes.length >= 6 && ["GIF87a", "GIF89a"].includes(ascii(0, 6))) return "image/gif";
   if (bytes.length >= 12 && ascii(0, 4) === "RIFF" && ascii(8, 12) === "WEBP") {
     return "image/webp";

@@ -7,7 +7,10 @@ class MemoryFileHandle {
   private value: string;
   private modified = 100;
 
-  constructor(readonly name: string, value: string) {
+  constructor(
+    readonly name: string,
+    value: string,
+  ) {
     this.value = value;
   }
 

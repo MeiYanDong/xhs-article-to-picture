@@ -11,11 +11,16 @@ const fallback: AuthorProfile = {
 
 describe("author profile customization", () => {
   it("migrates the previous combined meta and initials fields", () => {
-    expect(normalizeAuthorProfile({
-      name: "新的作者",
-      meta: "2026年7月18日  ·  AI 实验",
-      initials: "新",
-    }, fallback)).toEqual({
+    expect(
+      normalizeAuthorProfile(
+        {
+          name: "新的作者",
+          meta: "2026年7月18日  ·  AI 实验",
+          initials: "新",
+        },
+        fallback,
+      ),
+    ).toEqual({
       name: "新的作者",
       date: "2026年7月18日",
       column: "AI 实验",
@@ -25,13 +30,16 @@ describe("author profile customization", () => {
   });
 
   it("keeps custom fields independent and accepts only raster data URLs", () => {
-    const profile = normalizeAuthorProfile({
-      name: "作者",
-      date: "今天",
-      column: "实测栏目",
-      wordmark: "AI Lab",
-      avatarDataUrl: "data:image/svg+xml;base64,PHN2Zz4=",
-    }, fallback);
+    const profile = normalizeAuthorProfile(
+      {
+        name: "作者",
+        date: "今天",
+        column: "实测栏目",
+        wordmark: "AI Lab",
+        avatarDataUrl: "data:image/svg+xml;base64,PHN2Zz4=",
+      },
+      fallback,
+    );
     expect(profile.wordmark).toBe("AI");
     expect(profile.avatarDataUrl).toBeUndefined();
     expect(formatAuthorMeta(profile)).toBe("今天 · 实测栏目");

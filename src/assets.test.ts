@@ -43,19 +43,13 @@ describe("asset path resolution", () => {
   });
 
   it("normalizes encoded paths and parent segments safely", () => {
-    expect(normalizePath("notes\\AI/../图片/%E6%B5%81%E7%A8%8B.png")).toBe(
-      "notes/图片/流程.png",
-    );
+    expect(normalizePath("notes\\AI/../图片/%E6%B5%81%E7%A8%8B.png")).toBe("notes/图片/流程.png");
   });
 
   it("resolves ../ relative to the Markdown directory, not the Vault root", () => {
-    expect(buildCandidatePaths("../images/check.png", "notes/lab/article.md", "attachments"))
-      .toEqual([
-        "notes/images/check.png",
-        "attachments/check.png",
-        "images/check.png",
-        "check.png",
-      ]);
+    expect(
+      buildCandidatePaths("../images/check.png", "notes/lab/article.md", "attachments"),
+    ).toEqual(["notes/images/check.png", "attachments/check.png", "images/check.png", "check.png"]);
   });
 
   it("prefers an exact relative match and reports duplicate basenames", async () => {
@@ -71,19 +65,18 @@ describe("asset path resolution", () => {
       url: "blob:resolved-image",
     });
 
-    const ambiguousVault = vaultWith([
-      { path: "one/cover.png" },
-      { path: "two/cover.png" },
-    ]);
+    const ambiguousVault = vaultWith([{ path: "one/cover.png" }, { path: "two/cover.png" }]);
     await expect(
       resolveAsset("cover.png", "notes/article.md", ambiguousVault),
     ).resolves.toMatchObject({ status: "ambiguous" });
   });
 
   it("keeps remote images remote and makes missing local context explicit", async () => {
-    await expect(resolveAsset("https://example.com/image.png", "article.md"))
-      .resolves.toMatchObject({ status: "remote" });
-    await expect(resolveAsset("image.png", "article.md"))
-      .resolves.toMatchObject({ status: "missing" });
+    await expect(
+      resolveAsset("https://example.com/image.png", "article.md"),
+    ).resolves.toMatchObject({ status: "remote" });
+    await expect(resolveAsset("image.png", "article.md")).resolves.toMatchObject({
+      status: "missing",
+    });
   });
 });

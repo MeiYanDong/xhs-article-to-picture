@@ -36,16 +36,8 @@ import {
   type ChangeEvent,
   type DragEvent,
 } from "react";
-import {
-  resolveBlockAssets,
-  resolveCandidate,
-  revokeAssetUrls,
-} from "./assets";
-import {
-  normalizeAuthorProfile,
-  normalizeWordmark,
-  prepareAvatarDataUrl,
-} from "./author";
+import { resolveBlockAssets, resolveCandidate, revokeAssetUrls } from "./assets";
+import { normalizeAuthorProfile, normalizeWordmark, prepareAvatarDataUrl } from "./author";
 import { DEMO_AUTHOR, createDemoSession } from "./demo";
 import type {
   AssetDiagnostic,
@@ -71,7 +63,7 @@ import {
   sessionFromImportedFile,
   supportsFileSystemAccess,
 } from "./filesystem";
-import { inlinePlainText, parseMarkdown } from "./markdown";
+import { parseMarkdown, resolveExportTopicSource } from "./markdown";
 import { Preview } from "./Preview";
 import {
   addSnapshot,
@@ -84,27 +76,27 @@ import {
 const editorTheme = EditorView.theme({
   "&": {
     height: "100%",
-    backgroundColor: "#f7f4ec",
-    color: "#24241f",
+    backgroundColor: "#fcf8f3",
+    color: "#4a4641",
     fontSize: "15px",
   },
   ".cm-content": {
-    caretColor: "#e84b31",
+    caretColor: "#8e5b54",
     fontFamily: '"SFMono-Regular", "Cascadia Code", monospace',
     padding: "30px 28px 80px",
     lineHeight: "1.75",
   },
   ".cm-line": { padding: "0 2px" },
   ".cm-gutters": {
-    backgroundColor: "#f7f4ec",
-    color: "#aaa69d",
+    backgroundColor: "#fcf8f3",
+    color: "#a49b93",
     border: "none",
     paddingLeft: "10px",
   },
-  ".cm-activeLine": { backgroundColor: "rgba(232, 75, 49, 0.055)" },
-  ".cm-activeLineGutter": { backgroundColor: "transparent", color: "#e84b31" },
+  ".cm-activeLine": { backgroundColor: "rgba(232, 160, 149, 0.12)" },
+  ".cm-activeLineGutter": { backgroundColor: "transparent", color: "#8e5b54" },
   ".cm-selectionBackground, ::selection": {
-    backgroundColor: "rgba(240, 184, 75, 0.3) !important",
+    backgroundColor: "rgba(243, 215, 166, 0.48) !important",
   },
   ".cm-focused": { outline: "none" },
 });
@@ -125,11 +117,7 @@ function readLocalSetting<T>(key: string, fallback: T): T {
   }
 }
 
-function sourceBadge(
-  session: DocumentSession,
-  dirty: boolean,
-  externalChanged: boolean,
-) {
+function sourceBadge(session: DocumentSession, dirty: boolean, externalChanged: boolean) {
   if (externalChanged) return { label: "外部已更新", className: "external" };
   if (dirty) return { label: "已修改", className: "dirty" };
   if (session.mode === "demo") return { label: "示例 · 未落盘", className: "demo" };
@@ -200,13 +188,13 @@ function StartScreen({
             <br />
             边改原文，边看小红书连续长文的真实分页。
           </p>
-          <button className="text-action" onClick={onOpenDemo}>
+          <button type="button" className="text-action" onClick={onOpenDemo}>
             <Sparkles size={17} /> 先用示例体验完整工作台 <ChevronRight size={17} />
           </button>
         </div>
 
         <div className="start-actions">
-          <button className="primary-entry" onClick={onOpenVault} disabled={busy}>
+          <button type="button" className="primary-entry" onClick={onOpenVault} disabled={busy}>
             <span className="entry-number">01</span>
             <FolderOpen size={28} />
             <span>
@@ -215,7 +203,7 @@ function StartScreen({
             </span>
             <ChevronRight />
           </button>
-          <button className="secondary-entry" onClick={onOpenFile} disabled={busy}>
+          <button type="button" className="secondary-entry" onClick={onOpenFile} disabled={busy}>
             <span className="entry-number">02</span>
             <FileText size={25} />
             <span>
@@ -224,8 +212,9 @@ function StartScreen({
             </span>
             <ChevronRight />
           </button>
-          <div
+          <section
             className={`drop-entry ${dragging ? "is-dragging" : ""}`}
+            aria-label="Markdown 文件拖放区"
             onDragEnter={(event) => {
               event.preventDefault();
               setDragging(true);
@@ -239,7 +228,9 @@ function StartScreen({
               拖入 Markdown 临时预览
               <small>不会静默覆盖来源文件</small>
             </span>
-            <button onClick={() => inputRef.current?.click()}>选择文件</button>
+            <button type="button" onClick={() => inputRef.current?.click()}>
+              选择文件
+            </button>
             <input
               ref={inputRef}
               hidden
@@ -251,13 +242,17 @@ function StartScreen({
                 event.target.value = "";
               }}
             />
-          </div>
+          </section>
 
           {recentVaults.length > 0 ? (
             <div className="recent-vaults">
               <span>最近打开</span>
               {recentVaults.map((record) => (
-                <button key={`${record.id}-${record.openedAt}`} onClick={() => onOpenRecent(record)}>
+                <button
+                  type="button"
+                  key={`${record.id}-${record.openedAt}`}
+                  onClick={() => onOpenRecent(record)}
+                >
                   <FolderOpen size={15} />
                   <span>{record.name}</span>
                   <small>{formatTime(record.openedAt)}</small>
@@ -270,7 +265,9 @@ function StartScreen({
 
       <footer className="start-footer">
         <span>WHITE PAPER / BLACK INK / REAL SCREENSHOTS</span>
-        <span>{supportsFileSystemAccess() ? "Chrome 文件读写已就绪" : "当前浏览器仅支持导入副本"}</span>
+        <span>
+          {supportsFileSystemAccess() ? "Chrome 文件读写已就绪" : "当前浏览器仅支持导入副本"}
+        </span>
       </footer>
     </main>
   );
@@ -301,7 +298,7 @@ function FileTree({
   if (collapsed) {
     return (
       <aside className="file-tree is-collapsed">
-        <button onClick={onToggle} aria-label="展开文件树">
+        <button type="button" onClick={onToggle} aria-label="展开文件树">
           <FolderOpen size={18} />
         </button>
       </aside>
@@ -315,7 +312,7 @@ function FileTree({
           <span className="eyebrow">SOURCE</span>
           <strong>{vault?.name ?? "单篇文章"}</strong>
         </div>
-        <button onClick={onToggle} aria-label="收起文件树">
+        <button type="button" onClick={onToggle} aria-label="收起文件树">
           <PanelLeftClose size={17} />
         </button>
       </div>
@@ -323,11 +320,16 @@ function FileTree({
         <>
           <label className="tree-search">
             <Search size={15} />
-            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="筛选文章" />
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="筛选文章"
+            />
           </label>
           <div className="tree-files">
             {files.map((entry) => (
               <button
+                type="button"
                 key={entry.path}
                 className={entry.path === currentPath ? "is-current" : ""}
                 onClick={() => onSelect(entry)}
@@ -370,7 +372,9 @@ function AssetDrawer({
   onChooseFile: (diagnostic: AssetDiagnostic) => void;
   onRetry: () => void;
 }) {
-  const resolved = diagnostics.filter((item) => ["resolved", "remote"].includes(item.status)).length;
+  const resolved = diagnostics.filter((item) =>
+    ["resolved", "remote"].includes(item.status),
+  ).length;
   const failures = diagnostics.filter((item) => !["resolved", "remote"].includes(item.status));
 
   return (
@@ -378,15 +382,21 @@ function AssetDrawer({
       <div className="drawer-head">
         <div>
           <span className="eyebrow">ASSET CHECK</span>
-          <strong>图片诊断 {resolved}/{diagnostics.length}</strong>
+          <strong>
+            图片诊断 {resolved}/{diagnostics.length}
+          </strong>
         </div>
-        <button onClick={onClose} aria-label="关闭图片诊断">
+        <button type="button" onClick={onClose} aria-label="关闭图片诊断">
           <X size={18} />
         </button>
       </div>
       <div className="asset-summary">
         <div className="asset-score">
-          <span style={{ width: `${diagnostics.length ? (resolved / diagnostics.length) * 100 : 100}%` }} />
+          <span
+            style={{
+              width: `${diagnostics.length ? (resolved / diagnostics.length) * 100 : 100}%`,
+            }}
+          />
         </div>
         <p>
           {failures.length === 0
@@ -396,7 +406,10 @@ function AssetDrawer({
       </div>
       <div className="asset-list">
         {diagnostics.map((diagnostic) => (
-          <div className={`asset-row status-${diagnostic.status}`} key={`${diagnostic.blockId}-${diagnostic.raw}`}>
+          <div
+            className={`asset-row status-${diagnostic.status}`}
+            key={`${diagnostic.blockId}-${diagnostic.raw}`}
+          >
             <div className="asset-status-icon">
               {["resolved", "remote"].includes(diagnostic.status) ? (
                 <Check size={16} />
@@ -415,7 +428,11 @@ function AssetDrawer({
               {diagnostic.status === "ambiguous" ? (
                 <div className="asset-candidates">
                   {diagnostic.candidates?.map((candidate, index) => (
-                    <button key={candidate.path} onClick={() => onChooseCandidate(diagnostic, index)}>
+                    <button
+                      type="button"
+                      key={candidate.path}
+                      onClick={() => onChooseCandidate(diagnostic, index)}
+                    >
                       {candidate.path}
                     </button>
                   ))}
@@ -423,8 +440,12 @@ function AssetDrawer({
               ) : null}
               {diagnostic.status === "missing" ? (
                 <div className="asset-actions">
-                  <button onClick={onChooseDirectory}>选择资源目录</button>
-                  <button onClick={() => onChooseFile(diagnostic)}>选择单张图片</button>
+                  <button type="button" onClick={onChooseDirectory}>
+                    选择资源目录
+                  </button>
+                  <button type="button" onClick={() => onChooseFile(diagnostic)}>
+                    选择单张图片
+                  </button>
                 </div>
               ) : null}
             </div>
@@ -438,7 +459,7 @@ function AssetDrawer({
           </div>
         ) : null}
       </div>
-      <button className="drawer-footer-action" onClick={onRetry}>
+      <button type="button" className="drawer-footer-action" onClick={onRetry}>
         <RefreshCw size={15} /> 重新解析全部图片
       </button>
     </aside>
@@ -484,7 +505,7 @@ function StyleDrawer({
           <span className="eyebrow">TYPE PROOF</span>
           <strong>原生长文参数</strong>
         </div>
-        <button onClick={onClose} aria-label="关闭样式设置">
+        <button type="button" onClick={onClose} aria-label="关闭样式设置">
           <X size={18} />
         </button>
       </div>
@@ -503,11 +524,18 @@ function StyleDrawer({
               <strong>{author.avatarDataUrl ? "图片头像" : "文字字标"}</strong>
               <small>图片会裁成正方形，只保存在当前浏览器。</small>
               <div className="author-avatar-actions">
-                <button type="button" onClick={() => avatarInputRef.current?.click()} disabled={avatarBusy}>
+                <button
+                  type="button"
+                  onClick={() => avatarInputRef.current?.click()}
+                  disabled={avatarBusy}
+                >
                   <Upload size={13} /> {avatarBusy ? "处理中" : "上传头像"}
                 </button>
                 {author.avatarDataUrl ? (
-                  <button type="button" onClick={() => onAuthor({ ...author, avatarDataUrl: undefined })}>
+                  <button
+                    type="button"
+                    onClick={() => onAuthor({ ...author, avatarDataUrl: undefined })}
+                  >
                     使用字标
                   </button>
                 ) : null}
@@ -528,10 +556,12 @@ function StyleDrawer({
               字标
               <button
                 type="button"
-                onClick={() => onAuthor({
-                  ...author,
-                  wordmark: normalizeWordmark(author.name, DEMO_AUTHOR.wordmark),
-                })}
+                onClick={() =>
+                  onAuthor({
+                    ...author,
+                    wordmark: normalizeWordmark(author.name, DEMO_AUTHOR.wordmark),
+                  })
+                }
               >
                 取作者首字
               </button>
@@ -540,10 +570,12 @@ function StyleDrawer({
               value={author.wordmark}
               maxLength={2}
               placeholder="折"
-              onChange={(event) => onAuthor({
-                ...author,
-                wordmark: Array.from(event.target.value).slice(0, 2).join(""),
-              })}
+              onChange={(event) =>
+                onAuthor({
+                  ...author,
+                  wordmark: Array.from(event.target.value).slice(0, 2).join(""),
+                })
+              }
             />
           </label>
           <label>
@@ -575,7 +607,11 @@ function StyleDrawer({
               />
             </label>
           </div>
-          <button className="author-reset-button" type="button" onClick={() => onAuthor(DEMO_AUTHOR)}>
+          <button
+            className="author-reset-button"
+            type="button"
+            onClick={() => onAuthor(DEMO_AUTHOR)}
+          >
             <RotateCcw size={13} /> 恢复默认作者头部
           </button>
         </div>
@@ -611,7 +647,11 @@ function StyleDrawer({
           <p>作者头部与视觉参数只保存在本机，不会写入 Markdown。手动分页标记除外。</p>
         </div>
       </div>
-      <button className="drawer-footer-action" onClick={() => onStyle(DEFAULT_PAGE_STYLE)}>
+      <button
+        type="button"
+        className="drawer-footer-action"
+        onClick={() => onStyle(DEFAULT_PAGE_STYLE)}
+      >
         <RotateCcw size={15} /> 恢复 Lab 初始参数
       </button>
     </aside>
@@ -638,7 +678,11 @@ function RangeControl({
   return (
     <label className="range-control">
       <span>
-        {label} <strong>{value}{suffix}</strong>
+        {label}{" "}
+        <strong>
+          {value}
+          {suffix}
+        </strong>
       </span>
       <input
         type="range"
@@ -670,7 +714,21 @@ function ConflictModal({
   onMerge: (text: string) => void;
 }) {
   const [mergeText, setMergeText] = useState(localText);
-  const changes = useMemo(() => diffLines(conflict.diskText, localText), [conflict.diskText, localText]);
+  const changes = useMemo(
+    () => diffLines(conflict.diskText, localText),
+    [conflict.diskText, localText],
+  );
+  const changeSegments = useMemo(() => {
+    let offset = 0;
+    return changes.slice(0, 12).map((part) => {
+      const segment = {
+        ...part,
+        key: `${offset}-${part.added ? "added" : part.removed ? "removed" : "same"}`,
+      };
+      offset += part.value.length;
+      return segment;
+    });
+  }, [changes]);
 
   return (
     <div className="modal-backdrop">
@@ -684,7 +742,7 @@ function ConflictModal({
             <h2>Obsidian 在你编辑时更新了这篇文章</h2>
             <p>{session.path}</p>
           </div>
-          <button onClick={onCancel} aria-label="取消保存">
+          <button type="button" onClick={onCancel} aria-label="取消保存">
             <X />
           </button>
         </div>
@@ -702,9 +760,12 @@ function ConflictModal({
             <strong>{formatTime(conflict.diskLastModified)}</strong>
           </div>
         </div>
-        <div className="diff-strip" aria-label="文本差异摘要">
-          {changes.slice(0, 12).map((part, index) => (
-            <span key={index} className={part.added ? "added" : part.removed ? "removed" : "same"}>
+        <div className="diff-strip" role="img" aria-label="文本差异摘要">
+          {changeSegments.map((part) => (
+            <span
+              key={part.key}
+              className={part.added ? "added" : part.removed ? "removed" : "same"}
+            >
               {part.value.slice(0, 160)}
             </span>
           ))}
@@ -714,9 +775,15 @@ function ConflictModal({
           <textarea value={mergeText} onChange={(event) => setMergeText(event.target.value)} />
         </label>
         <div className="conflict-actions">
-          <button onClick={onUseDisk}>载入 Obsidian 版本</button>
-          <button className="danger" onClick={onOverwrite}>用当前版本覆盖</button>
-          <button className="primary" onClick={() => onMerge(mergeText)}>应用合并内容</button>
+          <button type="button" onClick={onUseDisk}>
+            载入 Obsidian 版本
+          </button>
+          <button type="button" className="danger" onClick={onOverwrite}>
+            用当前版本覆盖
+          </button>
+          <button type="button" className="primary" onClick={() => onMerge(mergeText)}>
+            应用合并内容
+          </button>
         </div>
       </section>
     </div>
@@ -745,16 +812,24 @@ function RecoveryModal({
             <span className="eyebrow">LOCAL HISTORY</span>
             <strong>恢复本地快照</strong>
           </div>
-          <button onClick={onClose}><X size={18} /></button>
+          <button type="button" onClick={onClose}>
+            <X size={18} />
+          </button>
         </div>
         <p>恢复只会放进编辑器，仍需手动保存，不会立即覆盖原文。</p>
         <div className="snapshot-list">
           {snapshots.map((snapshot) => (
-            <button key={`${snapshot.timestamp}-${snapshot.hash}`} onClick={() => onRestore(snapshot)}>
+            <button
+              type="button"
+              key={`${snapshot.timestamp}-${snapshot.hash}`}
+              onClick={() => onRestore(snapshot)}
+            >
               <History size={18} />
               <span>
                 <strong>{labels[snapshot.reason]}</strong>
-                <small>{formatTime(snapshot.timestamp)} · {snapshot.text.split("\n").length} 行</small>
+                <small>
+                  {formatTime(snapshot.timestamp)} · {snapshot.text.split("\n").length} 行
+                </small>
               </span>
               <ChevronRight size={17} />
             </button>
@@ -769,10 +844,12 @@ function RecoveryModal({
 export default function App() {
   const [session, setSession] = useState<DocumentSession | null>(null);
   const [text, setText] = useState("");
-  const [author, setAuthor] = useState<AuthorProfile>(() => normalizeAuthorProfile(
-    readLocalSetting<unknown>("xhs-preview:author", DEMO_AUTHOR),
-    DEMO_AUTHOR,
-  ));
+  const [author, setAuthor] = useState<AuthorProfile>(() =>
+    normalizeAuthorProfile(
+      readLocalSetting<unknown>("xhs-preview:author", DEMO_AUTHOR),
+      DEMO_AUTHOR,
+    ),
+  );
   const [style, setStyle] = useState<PageStyle>(() =>
     readLocalSetting("xhs-preview:style", DEFAULT_PAGE_STYLE),
   );
@@ -795,15 +872,15 @@ export default function App() {
   const textRef = useRef(text);
 
   const blocks = useMemo(() => parseMarkdown(text), [text]);
-  const exportTopicSource = useMemo(() => {
-    const title = blocks.find((block) => block.type === "heading" && block.depth === 1);
-    return title?.type === "heading"
-      ? inlinePlainText(title.inline.nodes)
-      : (session?.label ?? "未命名主题");
-  }, [blocks, session?.label]);
+  const exportTopicSource = useMemo(
+    () => resolveExportTopicSource(text, blocks, session?.label ?? "未命名主题"),
+    [blocks, session?.label, text],
+  );
   const dirty = Boolean(session && text !== session.baseText);
   const badge = session ? sourceBadge(session, dirty, Boolean(externalChange)) : null;
-  const resolvedCount = diagnostics.filter((item) => ["resolved", "remote"].includes(item.status)).length;
+  const resolvedCount = diagnostics.filter((item) =>
+    ["resolved", "remote"].includes(item.status),
+  ).length;
   const failedCount = diagnostics.length - resolvedCount;
 
   useEffect(() => {
@@ -834,6 +911,7 @@ export default function App() {
     }
   }, [style]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: assetPulse intentionally retries asset resolution on demand.
   useEffect(() => {
     if (!session) return;
     let cancelled = false;
@@ -942,46 +1020,56 @@ export default function App() {
     const proceed = !dirty || window.confirm("当前文章有未保存修改，确定切换文章吗？");
     if (!proceed) return;
     withBusy(async () => {
-      await activateSession(await sessionFromHandle(entry.handle, entry.path, "vault", session.vault));
+      await activateSession(
+        await sessionFromHandle(entry.handle, entry.path, "vault", session.vault),
+      );
     });
   };
 
-  const performSave = useCallback(async (force = false) => {
-    if (!session) return;
-    if (!session.writable || !session.fileHandle) {
-      const saved = await saveAsMarkdown(session.label, text);
-      if (saved) {
-        await activateSession(saved);
-        setToast({ kind: "success", message: "已另存为新的 Markdown 文件。" });
-      } else {
-        setToast({ kind: "info", message: "当前来源是临时副本，请使用支持另存为的 Chrome。" });
-      }
-      return;
-    }
-
-    setBusy(true);
-    try {
-      const diskText = (await session.fileHandle.getFile()).text();
-      setSnapshots(await addSnapshot(session.id, await diskText, force ? "before-overwrite" : "before-save"));
-      const result = await saveDocument(session, text, force);
-      if (result.status === "conflict") {
-        setConflict(result.conflict);
-        setExternalChange(result.conflict);
+  const performSave = useCallback(
+    async (force = false) => {
+      if (!session) return;
+      if (!session.writable || !session.fileHandle) {
+        const saved = await saveAsMarkdown(session.label, text);
+        if (saved) {
+          await activateSession(saved);
+          setToast({ kind: "success", message: "已另存为新的 Markdown 文件。" });
+        } else {
+          setToast({ kind: "info", message: "当前来源是临时副本，请使用支持另存为的 Chrome。" });
+        }
         return;
       }
-      if (result.status === "saved") {
-        setSession(result.session);
-        setText(result.session.text);
-        setConflict(null);
-        setExternalChange(null);
-        setToast({ kind: "success", message: "原始 Markdown 已安全保存。" });
+
+      setBusy(true);
+      try {
+        const diskText = (await session.fileHandle.getFile()).text();
+        setSnapshots(
+          await addSnapshot(session.id, await diskText, force ? "before-overwrite" : "before-save"),
+        );
+        const result = await saveDocument(session, text, force);
+        if (result.status === "conflict") {
+          setConflict(result.conflict);
+          setExternalChange(result.conflict);
+          return;
+        }
+        if (result.status === "saved") {
+          setSession(result.session);
+          setText(result.session.text);
+          setConflict(null);
+          setExternalChange(null);
+          setToast({ kind: "success", message: "原始 Markdown 已安全保存。" });
+        }
+      } catch (error) {
+        setToast({
+          kind: "error",
+          message: error instanceof Error ? error.message : "保存失败，未保存内容仍在编辑器中。",
+        });
+      } finally {
+        setBusy(false);
       }
-    } catch (error) {
-      setToast({ kind: "error", message: error instanceof Error ? error.message : "保存失败，未保存内容仍在编辑器中。" });
-    } finally {
-      setBusy(false);
-    }
-  }, [activateSession, session, text]);
+    },
+    [activateSession, session, text],
+  );
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -1142,7 +1230,11 @@ export default function App() {
           onOpenRecent={openRecent}
           busy={busy}
         />
-        {busy ? <div className="global-busy"><LoaderCircle className="spin" /> 正在读取本地文件…</div> : null}
+        {busy ? (
+          <div className="global-busy">
+            <LoaderCircle className="spin" /> 正在读取本地文件…
+          </div>
+        ) : null}
         {toast ? <Toast toast={toast} /> : null}
       </>
     );
@@ -1153,6 +1245,7 @@ export default function App() {
       <header className="workspace-topbar">
         <div className="workspace-brand">
           <button
+            type="button"
             onClick={() => {
               if (!dirty || window.confirm("当前文章有未保存修改，确定返回吗？")) setSession(null);
             }}
@@ -1167,9 +1260,15 @@ export default function App() {
           </div>
         </div>
         <div className="workspace-actions">
-          <span className={`save-state ${badge?.className}`}><i />{badge?.label}</span>
-          <button onClick={openRecovery} title="恢复快照"><History size={17} /> 恢复</button>
+          <span className={`save-state ${badge?.className}`}>
+            <i />
+            {badge?.label}
+          </span>
+          <button type="button" onClick={openRecovery} title="恢复快照">
+            <History size={17} /> 恢复
+          </button>
           <button
+            type="button"
             className={drawer === "assets" ? "is-active" : ""}
             onClick={() => setDrawer((value) => (value === "assets" ? null : "assets"))}
           >
@@ -1177,12 +1276,18 @@ export default function App() {
             {failedCount > 0 ? <b>{failedCount}</b> : null}
           </button>
           <button
+            type="button"
             className={drawer === "style" ? "is-active" : ""}
             onClick={() => setDrawer((value) => (value === "style" ? null : "style"))}
           >
             <Settings2 size={17} /> 样式
           </button>
-          <button className="save-button" onClick={() => void performSave()} disabled={busy || (!dirty && session.writable)}>
+          <button
+            type="button"
+            className="save-button"
+            onClick={() => void performSave()}
+            disabled={busy || (!dirty && session.writable)}
+          >
             {busy ? <LoaderCircle className="spin" size={17} /> : <Save size={17} />}
             {session.writable ? "保存" : "另存为"}
             <kbd>⌘S</kbd>
@@ -1221,9 +1326,16 @@ export default function App() {
             />
           </div>
           <div className="editor-footer">
-            <span><FilePlus2 size={14} /> 插入分页：<code>&lt;!-- xhs-page-break --&gt;</code></span>
+            <span>
+              <FilePlus2 size={14} /> 插入分页：<code>&lt;!-- xhs-page-break --&gt;</code>
+            </span>
             <button
-              onClick={() => setText((current) => `${current.replace(/\s*$/, "")}\n\n<!-- xhs-page-break -->\n\n`)}
+              type="button"
+              onClick={() =>
+                setText(
+                  (current) => `${current.replace(/\s*$/, "")}\n\n<!-- xhs-page-break -->\n\n`,
+                )
+              }
             >
               在文末插入
             </button>
@@ -1267,10 +1379,12 @@ export default function App() {
           {failedCount ? <AlertTriangle size={14} /> : <Check size={14} />}
           图片 {resolvedCount}/{diagnostics.length || 0}
         </span>
-        <span><ScanTextIcon /> {pageCount} 页</span>
+        <span>
+          <ScanTextIcon /> {pageCount} 页
+        </span>
         <span>无服务器上传</span>
         <span>最后排版 {formatTime(lastMeasured).split(" ").pop()}</span>
-        <button onClick={() => setDrawer(null)} className={drawer ? "" : "is-hidden"}>
+        <button type="button" onClick={() => setDrawer(null)} className={drawer ? "" : "is-hidden"}>
           <PanelRightClose size={14} /> 收起面板
         </button>
       </footer>
@@ -1309,7 +1423,13 @@ function ScanTextIcon() {
 function Toast({ toast }: { toast: ToastState }) {
   return (
     <div className={`toast toast-${toast.kind}`}>
-      {toast.kind === "success" ? <Check size={17} /> : toast.kind === "error" ? <AlertTriangle size={17} /> : <CircleHelp size={17} />}
+      {toast.kind === "success" ? (
+        <Check size={17} />
+      ) : toast.kind === "error" ? (
+        <AlertTriangle size={17} />
+      ) : (
+        <CircleHelp size={17} />
+      )}
       {toast.message}
     </div>
   );

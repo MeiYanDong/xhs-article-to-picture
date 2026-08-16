@@ -5,9 +5,17 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1",
-    "build": "tsc -b && vite build",
+    "preview": "vite preview --host 127.0.0.1",
+    "build": "tsc -b && vite build && npm run check:bundle",
+    "check:bundle": "node scripts/check-bundle-size.mjs",
+    "typecheck": "tsc -b --pretty false",
+    "lint": "biome lint --error-on-warnings .",
+    "format": "biome format --write .",
+    "format:check": "biome format .",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:e2e": "npm run build && playwright test",
+    "check": "npm run format:check && npm run lint && npm run typecheck && npm test && npm run test:e2e"
   },
   "dependencies": {
     "@codemirror/lang-markdown": "^6.5.1",
@@ -26,6 +34,8 @@
     "unified": "^11.0.5"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.5.8",
+    "@playwright/test": "^1.62.1",
     "@types/node": "^26.1.1",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",

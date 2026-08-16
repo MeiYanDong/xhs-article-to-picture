@@ -11,18 +11,14 @@ import {
 } from "lucide-react";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { ArticleFlow } from "./ArticleContent";
-import type {
-  AuthorProfile,
-  ContentBlock,
-  PageStyle,
-  ResolvedAsset,
-} from "./domain";
+import type { AuthorProfile, ContentBlock, PageStyle, ResolvedAsset } from "./domain";
 import {
   EXPORT_HEIGHT,
   EXPORT_WIDTH,
   PUBLISH_ROOT_PATH,
   prepareAssetsForExport,
   renderPageToPng,
+  sanitizeTopicName,
   writePngFiles,
 } from "./exporter";
 import { getPublishRoot, rememberPublishRoot } from "./storage";
@@ -45,6 +41,19 @@ interface PreviewProps {
   onPageCountChange?: (count: number) => void;
   onAssetSettled?: () => void;
   onRemoteError?: (raw: string) => void;
+}
+
+interface FullPageImagePlacement {
+  pageIndex: number;
+  raw: string;
+  alt: string;
+}
+
+function pageEntries(count: number): Array<{ index: number; key: string }> {
+  return Array.from({ length: count }, (_, index) => ({
+    index,
+    key: `page-${index + 1}`,
+  }));
 }
 
 function useElementSize<T extends HTMLElement>() {
@@ -72,6 +81,7 @@ interface PageCardProps extends Omit<PreviewProps, "exportTopicSource"> {
   quiet?: boolean;
   capture?: boolean;
   artboardRef?: (node: HTMLElement | null) => void;
+  fullPageImages: Map<number, FullPageImagePlacement>;
 }
 
 function PageCard({
@@ -81,6 +91,7 @@ function PageCard({
   quiet = false,
   capture = false,
   artboardRef,
+  fullPageImages,
   blocks,
   assets,
   author,
@@ -89,7 +100,13 @@ function PageCard({
   onRemoteError,
 }: PageCardProps) {
   const clipRef = useRef<HTMLDivElement>(null);
+  const fullPageImage = fullPageImages.get(pageIndex);
+  const fullPageAsset = fullPageImage ? assets.get(fullPageImage.raw) : undefined;
+  const rendersFullPageImage = Boolean(
+    fullPageImage && fullPageAsset?.url && ["resolved", "remote"].includes(fullPageAsset.status),
+  );
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: content and style changes must restore the active column scroll position.
   useLayoutEffect(() => {
     const clip = clipRef.current;
     if (!clip) return;
@@ -115,7 +132,7 @@ function PageCard({
     >
       <article
         ref={artboardRef}
-        className="page-artboard"
+        className={`page-artboard ${rendersFullPageImage ? "is-full-page-image" : ""}`}
         style={{ transform: `scale(${scale})` }}
         aria-label={`第 ${pageIndex + 1} 页`}
       >
@@ -125,26 +142,43 @@ function PageCard({
             style={{ width: `${((pageIndex + 1) / Math.max(1, pageCount)) * 100}%` }}
           />
         </div>
-        <div
-          ref={clipRef}
-          className="page-content-clip"
-          style={{
-            left: style.horizontalPadding,
-            top: style.verticalPadding,
-            width: PAGE_WIDTH - style.horizontalPadding * 2,
-            height: PAGE_HEIGHT - style.verticalPadding * 2,
-          }}
-        >
-          {capture ? (
+        {rendersFullPageImage ? (
+          <img
+            className="page-full-bleed-image"
+            src={fullPageAsset?.url}
+            alt={fullPageImage?.alt ?? "整页图片"}
+            onError={() => {
+              if (fullPageAsset?.status === "remote" && fullPageImage) {
+                onRemoteError?.(fullPageImage.raw);
+              }
+            }}
+          />
+        ) : (
+          <>
             <div
-              className="export-column-shift"
-              style={{ transform: `translateX(-${pageIndex * COLUMN_SPAN}px)` }}
+              ref={clipRef}
+              className="page-content-clip"
+              style={{
+                left: style.horizontalPadding,
+                top: style.verticalPadding,
+                width: PAGE_WIDTH - style.horizontalPadding * 2,
+                height: PAGE_HEIGHT - style.verticalPadding * 2,
+              }}
             >
-              {articleFlow}
+              {capture ? (
+                <div
+                  className="export-column-shift"
+                  style={{ transform: `translateX(-${pageIndex * COLUMN_SPAN}px)` }}
+                >
+                  {articleFlow}
+                </div>
+              ) : (
+                articleFlow
+              )}
             </div>
-          ) : articleFlow}
-        </div>
-        <div className="page-folio">{String(pageIndex + 1).padStart(2, "0")}</div>
+            <div className="page-folio">{String(pageIndex + 1).padStart(2, "0")}</div>
+          </>
+        )}
       </article>
     </div>
   );
@@ -162,10 +196,7 @@ type ExportNotice =
   | { kind: "success"; title: string; detail: string }
   | { kind: "error"; title: string; detail: string };
 
-function waitForExportPages(
-  refs: Map<number, HTMLElement>,
-  pageCount: number,
-): Promise<void> {
+function waitForExportPages(refs: Map<number, HTMLElement>, pageCount: number): Promise<void> {
   const started = performance.now();
   return new Promise((resolve, reject) => {
     const check = () => {
@@ -195,6 +226,9 @@ export function Preview({
 }: PreviewProps) {
   const measureRef = useRef<HTMLDivElement>(null);
   const [pageCount, setPageCount] = useState(1);
+  const [fullPageImagePlacements, setFullPageImagePlacements] = useState<FullPageImagePlacement[]>(
+    [],
+  );
   const [currentPage, setCurrentPage] = useState(0);
   const [mode, setMode] = useState<PreviewMode>("single");
   const [exportJob, setExportJob] = useState<ExportJob | null>(null);
@@ -203,6 +237,11 @@ export function Preview({
   const [publishRoot, setPublishRoot] = useState<FileSystemDirectoryHandle | null>(null);
   const exportPageRefs = useRef(new Map<number, HTMLElement>());
   const exporting = Boolean(exportLabel);
+  const exportTopicName = useMemo(() => sanitizeTopicName(exportTopicSource), [exportTopicSource]);
+  const fullPageImages = useMemo(
+    () => new Map(fullPageImagePlacements.map((placement) => [placement.pageIndex, placement])),
+    [fullPageImagePlacements],
+  );
   const {
     ref: stageRef,
     width: stageWidth,
@@ -227,12 +266,35 @@ export function Preview({
     };
   }, []);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: contentKey intentionally retriggers pagination measurement after content changes.
   useLayoutEffect(() => {
     const measure = measureRef.current;
     if (!measure) return;
     const update = () => {
       const scrollWidth = measure.scrollWidth;
       const next = Math.max(1, Math.min(40, Math.ceil((scrollWidth + COLUMN_GAP) / COLUMN_SPAN)));
+      const flow = measure.querySelector<HTMLElement>(".article-flow");
+      const flowLeft = flow?.getBoundingClientRect().left ?? measure.getBoundingClientRect().left;
+      const placements = [...measure.querySelectorAll<HTMLElement>("[data-full-page-image]")]
+        .map((node) => {
+          const raw = node.dataset.fullPageImage;
+          if (!raw) return null;
+          const pageIndex = Math.max(
+            0,
+            Math.round((node.getBoundingClientRect().left - flowLeft) / COLUMN_SPAN),
+          );
+          return {
+            pageIndex,
+            raw,
+            alt: node.dataset.fullPageAlt ?? "整页图片",
+          };
+        })
+        .filter((placement): placement is FullPageImagePlacement => Boolean(placement));
+      const placementKey = (items: FullPageImagePlacement[]) =>
+        items.map((item) => `${item.pageIndex}:${item.raw}`).join("|");
+      setFullPageImagePlacements((current) =>
+        placementKey(current) === placementKey(placements) ? current : placements,
+      );
       setPageCount(next);
       onPageCountChange?.(next);
       setCurrentPage((page) => Math.min(page, next - 1));
@@ -326,9 +388,8 @@ export function Preview({
       const parent = await getWritablePublishRoot();
       setExportNotice(null);
       setExportLabel(assets.size ? `准备图片 0/${assets.size}` : "准备画布");
-      const preparedAssets = await prepareAssetsForExport(
-        snapshot.assets,
-        (completed, total) => setExportLabel(`准备图片 ${completed}/${total}`),
+      const preparedAssets = await prepareAssetsForExport(snapshot.assets, (completed, total) =>
+        setExportLabel(`准备图片 ${completed}/${total}`),
       );
       exportPageRefs.current.clear();
       setExportJob({ ...snapshot, assets: preparedAssets });
@@ -366,11 +427,7 @@ export function Preview({
 
   const singleScale = Math.max(
     0.18,
-    Math.min(
-      0.48,
-      (stageWidth - 104) / PAGE_WIDTH,
-      (stageHeight - 56 - 88) / PAGE_HEIGHT,
-    ),
+    Math.min(0.48, (stageWidth - 104) / PAGE_WIDTH, (stageHeight - 56 - 88) / PAGE_HEIGHT),
   );
   const gridScale = Math.max(0.15, Math.min(0.24, (stageWidth - 96) / (PAGE_WIDTH * 2)));
 
@@ -379,21 +436,26 @@ export function Preview({
       <div className="preview-toolbar">
         <div>
           <span className="eyebrow">LIVE PROOF</span>
-          <strong>{pageCount} 页</strong>
+          <div className="preview-topic-line">
+            <strong>{pageCount} 页</strong>
+            <small title={`导出主题：${exportTopicName}`}>主题 · {exportTopicName}</small>
+          </div>
         </div>
         <div className="preview-toolbar-actions">
           <button
+            type="button"
             className="export-button"
             onClick={() => void exportAllPages()}
             disabled={exporting}
             aria-label={`导出全部 ${pageCount} 页 PNG`}
-            title={`归档到 ${PUBLISH_ROOT_PATH}`}
+            title={`导出主题：${exportTopicName} · 归档到 ${PUBLISH_ROOT_PATH}`}
           >
             {exporting ? <LoaderCircle className="spin" size={15} /> : <Download size={15} />}
             <span>{exporting ? exportLabel : `导出 ${pageCount} 张`}</span>
           </button>
-          <div className="view-switch" role="group" aria-label="预览方式">
+          <div className="view-switch" role="toolbar" aria-label="预览方式">
             <button
+              type="button"
               className={mode === "single" ? "is-active" : ""}
               onClick={() => setMode("single")}
               aria-label="单页预览"
@@ -401,6 +463,7 @@ export function Preview({
               <ScanText size={16} />
             </button>
             <button
+              type="button"
               className={mode === "grid" ? "is-active" : ""}
               onClick={() => setMode("grid")}
               aria-label="缩略图预览"
@@ -408,6 +471,7 @@ export function Preview({
               <Grid2X2 size={16} />
             </button>
             <button
+              type="button"
               className={mode === "cover" ? "is-active" : ""}
               onClick={() => {
                 setMode("cover");
@@ -422,10 +486,7 @@ export function Preview({
       </div>
 
       <div className="pagination-measure" aria-hidden>
-        <div
-          ref={measureRef}
-          style={{ width: CONTENT_WIDTH, height: CONTENT_HEIGHT }}
-        >
+        <div ref={measureRef} style={{ width: CONTENT_WIDTH, height: CONTENT_HEIGHT }}>
           <ArticleFlow
             blocks={blocks}
             assets={assets}
@@ -440,10 +501,11 @@ export function Preview({
 
       {mode === "grid" ? (
         <div className="preview-grid">
-          {Array.from({ length: pageCount }, (_, index) => (
+          {pageEntries(pageCount).map(({ index, key }) => (
             <button
+              type="button"
               className={`grid-page ${currentPage === index ? "is-current" : ""}`}
-              key={index}
+              key={key}
               onClick={() => {
                 setCurrentPage(index);
                 setMode("single");
@@ -454,6 +516,7 @@ export function Preview({
                 pageCount={pageCount}
                 scale={gridScale}
                 quiet
+                fullPageImages={fullPageImages}
                 blocks={blocks}
                 assets={assets}
                 author={author}
@@ -472,6 +535,7 @@ export function Preview({
               pageIndex={0}
               pageCount={pageCount}
               scale={Math.min(singleScale, 0.34)}
+              fullPageImages={fullPageImages}
               blocks={blocks}
               assets={assets}
               author={author}
@@ -480,7 +544,9 @@ export function Preview({
               onRemoteError={onRemoteError}
             />
             <div className="feed-copy">
-              <strong>{blocks.find((block) => block.type === "heading") ? "文章首图预览" : "原生长文"}</strong>
+              <strong>
+                {blocks.find((block) => block.type === "heading") ? "文章首图预览" : "原生长文"}
+              </strong>
               <span>{author.name}</span>
             </div>
           </div>
@@ -489,6 +555,7 @@ export function Preview({
       ) : (
         <div className="single-preview-stage">
           <button
+            type="button"
             className="page-arrow left"
             onClick={() => setCurrentPage((page) => Math.max(0, page - 1))}
             disabled={currentPage === 0}
@@ -500,6 +567,7 @@ export function Preview({
             pageIndex={currentPage}
             pageCount={pageCount}
             scale={singleScale}
+            fullPageImages={fullPageImages}
             blocks={blocks}
             assets={assets}
             author={author}
@@ -508,6 +576,7 @@ export function Preview({
             onRemoteError={onRemoteError}
           />
           <button
+            type="button"
             className="page-arrow right"
             onClick={() => setCurrentPage((page) => Math.min(pageCount - 1, page + 1))}
             disabled={currentPage === pageCount - 1}
@@ -515,10 +584,15 @@ export function Preview({
           >
             <ChevronRight />
           </button>
-          <div className="page-dots" aria-label={`第 ${currentPage + 1} 页，共 ${pageCount} 页`}>
-            {Array.from({ length: pageCount }, (_, index) => (
+          <div
+            className="page-dots"
+            role="toolbar"
+            aria-label={`第 ${currentPage + 1} 页，共 ${pageCount} 页`}
+          >
+            {pageEntries(pageCount).map(({ index, key }) => (
               <button
-                key={index}
+                type="button"
+                key={key}
                 className={index === currentPage ? "is-active" : ""}
                 onClick={() => setCurrentPage(index)}
                 aria-label={`第 ${index + 1} 页`}
@@ -530,13 +604,14 @@ export function Preview({
 
       {exportJob ? (
         <div className="export-capture-stage" aria-hidden="true">
-          {Array.from({ length: exportJob.pageCount }, (_, index) => (
+          {pageEntries(exportJob.pageCount).map(({ index, key }) => (
             <PageCard
-              key={index}
+              key={key}
               pageIndex={index}
               pageCount={exportJob.pageCount}
               scale={1}
               capture
+              fullPageImages={fullPageImages}
               blocks={exportJob.blocks}
               assets={exportJob.assets}
               author={exportJob.author}
@@ -557,7 +632,9 @@ export function Preview({
             <strong>{exportNotice.title}</strong>
             <small>{exportNotice.detail}</small>
           </div>
-          <button onClick={() => setExportNotice(null)} aria-label="关闭导出提示">×</button>
+          <button type="button" onClick={() => setExportNotice(null)} aria-label="关闭导出提示">
+            ×
+          </button>
         </div>
       ) : null}
     </section>

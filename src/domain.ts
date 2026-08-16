@@ -64,6 +64,7 @@ export interface ImageSpec {
   alt: string;
   requestedWidth?: number;
   source: "markdown" | "obsidian";
+  layout?: "inline" | "full-page";
 }
 
 export type ContentBlock =
