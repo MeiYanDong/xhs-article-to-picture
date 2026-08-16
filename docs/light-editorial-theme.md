@@ -34,5 +34,6 @@
 - `src/exporter.test.ts` 断言 PNG 导出背景常量严格为 `#ffffff`。
 - `tests/e2e/light-theme.spec.ts` 读取浏览器最终计算色，断言纯白纸张、正文、单色雾粉进度条与标题标记、浅色状态栏及正文对比度。
 - 真实文章视觉读回：`06-xhs/fold-preview/white-final/01.png` 至 `10.png`，均为 1080×1440 PNG；`verification.json` 记录 10 页、图片 14/14、缺图 0、控制台错误 0。
+- 含封面版本的第一页读回：`06-xhs/fold-preview/white-final/cover-adapted-page-1.png`；新版封面为 1672×941，图片边框为 `0px`、衬底透明，页面仍为纯白 1080×1440。
 - 真实导出函数冒烟读回：PNG 为 1080×1440，三个无内容边缘采样点均为 `[255, 255, 255, 255]`。
 - 工作台视觉读回：`output/playwright/visual/start-light.png` 与 `workbench-light.png`；该目录只保存本地验收产物，不作为 CI 基线快照。
