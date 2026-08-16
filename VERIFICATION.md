@@ -4,7 +4,7 @@
 
 本次增量复验：2026-08-16
 
-结论：本地可运行版本通过统一质量门禁、Chromium 有序列表分页与浅色主题回归、原有自动化和生产构建。PR #1 的 GitHub Actions 已成功运行，`main` 分支保护已启用并从 API 读回；合并后的 `main` push 回执仍须在合并后补齐。
+结论：本地可运行版本通过统一质量门禁、Chromium 有序列表分页与浅色主题回归、原有自动化和生产构建。PR #1 的最新 HEAD 与合并后的 `main` push 均取得 GitHub Actions 成功回执；`main` 分支保护已启用并从 API 读回。
 
 ## 2026-08-16 有序列表增量复验
 
@@ -25,13 +25,16 @@
 
 ## GitHub CI 与合并保护读回
 
-首次 PR 回执（文档补充前的 HEAD）：
+PR 与 `main` 的远端回执：
 
 - PR：[Harden article folding and adopt a light editorial theme](https://github.com/MeiYanDong/xhs-article-to-picture/pull/1)
-- Workflow：[Quality run 31941290673](https://github.com/MeiYanDong/xhs-article-to-picture/actions/runs/31941290673)
-- 事件 / HEAD：`pull_request` / `673c8917b63e1f03bb5ba6a2bd6cd8cb1653b052`
-- 结果：`check` 成功；2026-08-16 18:17:48 至 18:18:30（Asia/Shanghai），42 秒
+- PR 最新 HEAD Workflow：[Quality run 31941351872](https://github.com/MeiYanDong/xhs-article-to-picture/actions/runs/31941351872)
+- 事件 / HEAD：`pull_request` / `a24de74c2004f8f08826e753552805b5877bcd03`
+- 结果：`check` 成功；2026-08-16 18:19:16 至 18:20:00（Asia/Shanghai），44 秒
 - 远端步骤：checkout、Node.js 22、`npm ci`、Playwright Chromium 与系统依赖安装、`npm run check` 全部成功
+- PR 合并结果：2026-08-16 18:20:19（Asia/Shanghai）合并为 `995f626fb47691fedabf8ac399578c57ad38a7b0`
+- `main` push Workflow：[Quality run 31941401552](https://github.com/MeiYanDong/xhs-article-to-picture/actions/runs/31941401552)
+- `main` 结果：`check` 成功；2026-08-16 18:20:24 至 18:21:08（Asia/Shanghai），44 秒；HEAD 与远端 `refs/heads/main` 均为 `995f626fb47691fedabf8ac399578c57ad38a7b0`
 
 `main` 分支保护 API 读回：
 
@@ -41,7 +44,7 @@
 - `required_conversation_resolution = true`
 - `allow_force_pushes = false`，`allow_deletions = false`
 
-上述是 GitHub 当前状态读回，不以仓库中的 YAML 或文档文字替代。由于本节本身会产生新提交，最终合并只接受新 HEAD 对应的严格 CI 成功结果。
+上述是 GitHub 当前状态读回，不以仓库中的 YAML 或文档文字替代。本验收文档自身的后续更新也必须通过受保护分支的 PR 与严格 `check`，不能直接写入 `main`。
 
 ## 自动化检查
 
